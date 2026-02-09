@@ -45,7 +45,7 @@ s3 = boto3.client(
 # === FILE NAMES ===
 CSV_OBJECT_KEY = 'peer_matching_data_v2.csv' 
 FEEDBACK_OBJECT_KEY = 'peer_finder_feedback.csv'
-ADMIN_PASSWORD = "alx_admin_2026_peer_finder"
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 
 # === PROGRAM CREDENTIALS ===
 def load_google_token(env_var_name):
@@ -495,3 +495,4 @@ def admin_unpair(user_id):
 if __name__ == '__main__':
 
     app.run(debug=True, port=5000, host='0.0.0.0')
+
