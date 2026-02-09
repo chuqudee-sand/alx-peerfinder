@@ -4,6 +4,7 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import { colors, fonts } from '../theme';
 import Spinner from '../components/Spinner';
+import { API_URL } from '../config'; // <--- FIX 1: Import API URL
 
 const StatusPage = () => {
   const { userId } = useParams();
@@ -11,6 +12,7 @@ const StatusPage = () => {
   const location = useLocation();
   
   const [status, setStatus] = useState(null);
+  const [error, setError] = useState(null); // <--- FIX 2: Add Error State
   const [loadingMatch, setLoadingMatch] = useState(false);
   const [matchMessage, setMatchMessage] = useState(null); 
   
@@ -22,17 +24,26 @@ const StatusPage = () => {
 
   const fetchStatus = async () => {
     try {
-      const res = await axios.post(`${API_URL}/api/status/${userId}?t=${Date.now()}`);
-      setStatus(res.data);
+      // <--- FIX 3: Changed axios.post to axios.get (Standard for fetching data)
+      const res = await axios.get(`${API_URL}/api/status/${userId}?t=${Date.now()}`);
+      if (res.data.success) {
+        setStatus(res.data);
+      } else {
+        setError("User not found.");
+      }
     } catch (err) {
       console.error("Error fetching status", err);
+      // <--- FIX 4: Stop the spinner if error occurs
+      setError("Failed to load status. Please check connection.");
     }
   };
 
   useEffect(() => {
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 5000);
-    return () => clearInterval(interval);
+    if (userId) {
+        fetchStatus();
+        const interval = setInterval(fetchStatus, 5000); // Polling every 5s
+        return () => clearInterval(interval);
+    }
   }, [userId]);
 
   const handleManualMatch = async () => {
@@ -54,7 +65,7 @@ const StatusPage = () => {
 
   const handleLeaveGroup = async () => {
     try {
-      await await axios.post(`${API_URL}/api/leave-group`, { 
+      await axios.post(`${API_URL}/api/leave-group`, { 
         user_id: userId, 
         reason: unpairReason 
       });
@@ -64,6 +75,15 @@ const StatusPage = () => {
       alert("Error leaving group.");
     }
   };
+
+  // <--- FIX 5: Render Error Screen if failed
+  if (error) return (
+    <div style={styles.loadingContainer}>
+       <h3 style={{color: colors.secondary.tomato}}>Error Loading Status</h3>
+       <p style={{color: 'white', marginBottom: '20px'}}>{error}</p>
+       <button onClick={() => navigate('/')} style={styles.homeBtn}>Back to Home</button>
+    </div>
+  );
 
   if (!status) return (
     <div style={styles.loadingContainer}>
@@ -155,144 +175,3 @@ const StatusPage = () => {
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                style={styles.noticeBox}
-              >
-                {matchMessage}
-              </motion.div>
-            )}
-
-            <p style={{fontSize: '0.8rem', color: '#666', marginTop: '10px'}}>
-              (Save this ID to check back later)
-            </p>
-          </div>
-        )}
-
-        <button style={styles.homeBtn} onClick={() => navigate('/')}>Back to Home</button>
-      </motion.div>
-
-      {/* UNPAIR MODAL */}
-      {showUnpairModal && (
-        <div style={styles.modalOverlay}>
-            <motion.div 
-                initial={{ scale: 0.8 }} animate={{ scale: 1 }} 
-                style={{...styles.card, maxWidth: '400px', padding: '2rem'}}
-            >
-                <h3 style={{color:'#d32f2f', marginTop: 0}}>Leave Group? ⚠️</h3>
-                <p style={{fontSize:'0.95rem', color: '#555', marginBottom: '15px'}}>
-                    This will remove YOU from the group. You will be placed back in the queue to find new peers.
-                </p>
-                <textarea 
-                    placeholder="Reason (Required) - e.g., Peers unresponsive"
-                    value={unpairReason} 
-                    onChange={e => setUnpairReason(e.target.value)}
-                    style={{width:'100%', padding:'10px', marginTop:'10px', borderRadius:'5px', border:'1px solid #ccc', fontFamily: 'inherit'}}
-                />
-                <div style={{display:'flex', gap:'10px', marginTop:'20px', justifyContent:'center'}}>
-                    <button onClick={() => setShowUnpairModal(false)} style={{padding:'10px 20px', border:'1px solid #ccc', background:'white', borderRadius:'5px', cursor:'pointer'}}>Cancel</button>
-                    
-                    {/* CONFIRM BUTTON (Disabled if reason is empty) */}
-                    <button 
-                        onClick={handleLeaveGroup} 
-                        disabled={!unpairReason.trim()}
-                        style={{
-                            background: '#d32f2f', 
-                            color: 'white', 
-                            border: 'none', 
-                            padding: '10px 20px', 
-                            borderRadius: '5px', 
-                            cursor: !unpairReason.trim() ? 'not-allowed' : 'pointer',
-                            opacity: !unpairReason.trim() ? 0.5 : 1,
-                            fontWeight: 'bold'
-                        }}
-                    >
-                        Confirm Leave
-                    </button>
-                </div>
-            </motion.div>
-        </div>
-      )}
-
-    </div>
-  );
-};
-
-const styles = {
-  container: {
-    minHeight: '100vh',
-    background: colors.primary.berkeleyBlue,
-    display: 'flex', justifyContent: 'center', alignItems: 'center',
-    padding: '20px', fontFamily: fonts.main
-  },
-  loadingContainer: {
-    minHeight: '100vh', background: colors.primary.berkeleyBlue,
-    display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center'
-  },
-  card: {
-    background: colors.primary.white,
-    padding: '3rem', borderRadius: '20px',
-    maxWidth: '600px', width: '100%', textAlign: 'center',
-    boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
-  },
-  title: { margin: '0 0 1.5rem 0', fontSize: '2rem' },
-  subTitle: { color: colors.primary.berkeleyBlue, margin: '0 0 1rem 0' },
-  
-  // Success
-  successBox: {
-    background: '#e6fffa', 
-    border: `2px solid ${colors.primary.springGreen}`,
-    borderRadius: '15px', padding: '20px', textAlign: 'left'
-  },
-  list: { display: 'flex', flexDirection: 'column', gap: '15px' },
-  memberRow: {
-    background: 'white', padding: '15px', borderRadius: '10px',
-    boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
-  },
-  memberName: { display: 'block', fontWeight: 'bold', fontSize: '1.1rem', color: colors.primary.berkeleyBlue, marginBottom: '5px' },
-  contactInfo: { display: 'flex', flexDirection: 'column', fontSize: '0.9rem', color: '#555', gap: '2px' },
-  note: { marginTop: '15px', fontStyle: 'italic', fontSize: '0.9rem', color: '#666' },
-
-  // Waiting
-  waitingBox: {
-    padding: '20px', background: '#f8f9fa', borderRadius: '15px', marginBottom: '20px'
-  },
-  waitingText: { fontSize: '1.1rem', lineHeight: '1.6', color: '#444', marginBottom: '20px' },
-  idBox: {
-    background: colors.secondary.electricBlue + '33', 
-    padding: '15px', borderRadius: '10px', border: `1px dashed ${colors.secondary.electricBlue}`,
-    display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '20px'
-  },
-  findBtn: {
-    width: '100%', padding: '15px', 
-    background: colors.primary.iris, color: 'white',
-    border: 'none', borderRadius: '30px', fontWeight: 'bold', 
-    fontSize: '1rem', cursor: 'pointer'
-  },
-  
-  // Notice
-  noticeBox: {
-    marginTop: '15px',
-    padding: '10px',
-    background: '#fff3cd', 
-    color: '#856404',      
-    border: '1px solid #ffeeba',
-    borderRadius: '8px',
-    fontSize: '0.9rem',
-    fontWeight: 'bold'
-  },
-
-  homeBtn: {
-    marginTop: '30px', padding: '12px 24px', background: 'transparent',
-    border: `2px solid ${colors.primary.iris}`, color: colors.primary.iris,
-    borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer',
-    transition: 'all 0.3s'
-  },
-
-  // Modal
-  modalOverlay: {
-    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-    background: 'rgba(0, 43, 86, 0.9)', 
-    display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
-  },
-};
-
-export default StatusPage;
