@@ -76,6 +76,9 @@ const RegisterPage = () => {
           <ul style={styles.warningList}>
             <li>Show up for your partner — ghosting is discouraged.</li>
             <li>Provide accurate info only.</li>
+            <li>Feel free to opt out at any time.</li>
+            <li>Peer support is labelled as informal.</li>
+             <li>Volunteers are here to support, not replace official facilitators/instructors.</li>
           </ul>
         </div>
 
@@ -124,9 +127,9 @@ const RegisterPage = () => {
             ) : (
                 <>
                     <option value="">--Select--</option>
-                    <option value="Quick chats">Quick chats</option>
+                    <option value="Deep dive">Deep dive</option>
                     <option value="Co-work sessions">Co-work sessions</option>
-                    <option value="Deep dives">Deep dives</option>
+                    <option value="General program navigation">General program navigation</option>
                     <option value="Flexible">Flexible</option>
                 </>
             )}
@@ -167,7 +170,7 @@ const RegisterPage = () => {
            )}
            
            {connectionType !== 'find' && (
-             <div><label style={styles.label}>Support Type</label><select style={styles.select} name="kind_of_support" onChange={handleChange} required><option value="">--Select--</option><option value="Explanation">Explanation</option><option value="Full support">Full support</option></select></div>
+             <div><label style={styles.label}>Support Type</label><select style={styles.select} name="kind_of_support" onChange={handleChange} required><option value="">--Select--</option><option value="Content Explanation">Content Explanation</option><option value="Test or Milestone clarification">Test or Milestone clarification</option><option value="Full support">Full support</option></select></div>
            )}
 
            <div style={styles.checkboxContainer}>
@@ -203,5 +206,6 @@ const styles = {
   submitButton: { padding: '15px', marginTop: '20px', background: `linear-gradient(45deg, ${colors.primary.iris}, ${colors.secondary.electricBlue})`, border: 'none', borderRadius: '30px', color: 'white', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer' },
   checkboxContainer: { display: 'flex', alignItems: 'center', marginTop: '10px' },
 };
+
 
 export default RegisterPage;
