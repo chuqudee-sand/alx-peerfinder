@@ -16,10 +16,6 @@ const StatusPage = () => {
   const [loadingMatch, setLoadingMatch] = useState(false);
   const [matchMessage, setMatchMessage] = useState(null); 
   
-  // Retry Logic State
-  const [retryCount, setRetryCount] = useState(0);
-  const MAX_RETRIES = 20; // Try for 10 times (approx 15 seconds) before giving up
-
   // --- UNPAIR STATE ---
   const [showUnpairModal, setShowUnpairModal] = useState(false);
   const [unpairReason, setUnpairReason] = useState("");
@@ -28,41 +24,40 @@ const StatusPage = () => {
 
   const fetchStatus = async () => {
     try {
+      console.log(`fetching: ${API_URL}/api/status/${userId}`); // Debug Log
+
       const res = await axios.get(`${API_URL}/api/status/${userId}?t=${Date.now()}`);
       
-      if (res.data.success) {
-        setStatus(res.data);
-        setError(null); // Clear error if we found them!
+      console.log("SERVER RESPONSE:", res.data); // Debug Log - Check console if this fails!
+
+      // ROBUST CHECK: Accept data if 'success' is true OR if 'user' data exists directly
+      const data = res.data;
+      if (data.success || data.user || data.matched !== undefined) {
+        setStatus(data);
+        setError(null);
       } else {
-        // User Not Found YET - This is key!
-        if (retryCount < MAX_RETRIES) {
-            console.log(`User not synced yet. Retrying... (${retryCount}/${MAX_RETRIES})`);
-            setRetryCount(prev => prev + 1);
-            // Do NOT set error yet, just let it keep loading
-        } else {
-            setError("User could not be found. Please contact support.");
-        }
+        // If we get 200 OK but weird data
+        console.warn("Invalid Data Structure:", data);
+        setError("User not found in the system.");
       }
+
     } catch (err) {
-      console.error("Error fetching status", err);
-      if (retryCount >= MAX_RETRIES) {
-         setError("Connection failed. Please refresh.");
-      } else {
-         setRetryCount(prev => prev + 1);
-      }
+      console.error("Fetch Error:", err);
+      // Only show error if we really can't connect
+      setError("Unable to load status. Please check your internet connection.");
     }
   };
 
   useEffect(() => {
     if (userId) {
-        // Initial fetch
         fetchStatus();
-        
-        // Poll every 3 seconds (faster polling at start is better)
-        const interval = setInterval(fetchStatus, 3000); 
+        // Poll every 10 seconds to keep data fresh without spamming
+        const interval = setInterval(fetchStatus, 10000); 
         return () => clearInterval(interval);
+    } else {
+        setError("Invalid User ID.");
     }
-  }, [userId, retryCount]); // Dependency on retryCount ensures we keep checking
+  }, [userId]);
 
   const handleManualMatch = async () => {
     setLoadingMatch(true);
@@ -73,10 +68,7 @@ const StatusPage = () => {
       if (!res.data.matched) {
         setMatchMessage("No match found yet. Please try again soon!");
       }
-      // Force an immediate status update
-      const statusRes = await axios.get(`${API_URL}/api/status/${userId}?t=${Date.now()}`);
-      if(statusRes.data.success) setStatus(statusRes.data);
-      
+      fetchStatus(); // Refresh immediately
     } catch (err) {
       setMatchMessage("Could not check for matches. Please try again.");
     } finally {
@@ -97,25 +89,33 @@ const StatusPage = () => {
     }
   };
 
-  // Only show Error if we have EXHAUSTED retries AND still have no status
-  if (error && !status && retryCount >= MAX_RETRIES) return (
+  // --- ERROR STATE ---
+  if (error) return (
     <div style={styles.loadingContainer}>
        <h3 style={{color: colors.secondary.tomato}}>Error Loading Status</h3>
        <p style={{color: 'white', marginBottom: '20px'}}>{error}</p>
-       <button onClick={() => navigate('/')} style={styles.homeBtn}>Back to Home</button>
-    </div>
-  );
+       
+       <div style={{display:'flex', gap:'10px'}}>
+         <button onClick={() => window.location.reload()} style={styles.retryBtn}>Retry</button>
+         <button onClick={() => navigate('/')} style={styles.homeBtn}>Back to Home</button>
+       </div>
 
-  // If we have no status yet, show loading (even if "User not found" happened once or twice)
-  if (!status) return (
-    <div style={styles.loadingContainer}>
-       <Spinner size="40px" color={colors.secondary.electricBlue} />
-       <p style={{marginTop: '20px', color: 'white'}}>
-          {retryCount > 2 ? "Syncing your data..." : "Loading status..."}
+       {/* Debug Helper for you */}
+       <p style={{marginTop:'50px', fontSize:'0.7rem', color:'#666'}}>
+         Debug: Check browser console (F12) for response details.
        </p>
     </div>
   );
 
+  // --- LOADING STATE ---
+  if (!status) return (
+    <div style={styles.loadingContainer}>
+       <Spinner size="40px" color={colors.secondary.electricBlue} />
+       <p style={{marginTop: '20px', color: 'white'}}>Loading status...</p>
+    </div>
+  );
+
+  // --- SUCCESS STATE ---
   return (
     <div style={styles.container}>
       <motion.div 
@@ -134,7 +134,7 @@ const StatusPage = () => {
           }
         </h1>
 
-        {/* === MATCHED STATE === */}
+        {/* === MATCHED === */}
         {status.matched ? (
           <motion.div 
             initial={{ y: 20, opacity: 0 }}
@@ -155,7 +155,6 @@ const StatusPage = () => {
             </div>
             <p style={styles.note}>Please contact your peer(s) now. <br />Check your email for more details!</p>
 
-            {/* LEAVE GROUP BUTTON */}
             <div style={{marginTop: '30px', borderTop: '1px solid #eee', paddingTop: '15px', textAlign: 'center'}}>
                 <p style={{fontSize:'0.8rem', color:'#999', marginBottom: '5px'}}>Group inactive?</p>
                 <button 
@@ -167,7 +166,7 @@ const StatusPage = () => {
             </div>
           </motion.div>
         ) : (
-          /* === WAITING STATE === */
+          /* === WAITING === */
           <div style={styles.waitingBox}>
             <p style={styles.waitingText}>
               {isDuplicate 
@@ -194,13 +193,8 @@ const StatusPage = () => {
                ) : "Find Matches Now 🚀"}
             </motion.button>
 
-            {/* === ORANGE NOTICE MESSAGE === */}
             {matchMessage && (
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                style={styles.noticeBox}
-              >
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={styles.noticeBox}>
                 {matchMessage}
               </motion.div>
             )}
@@ -217,39 +211,25 @@ const StatusPage = () => {
       {/* UNPAIR MODAL */}
       {showUnpairModal && (
         <div style={styles.modalOverlay}>
-            <motion.div 
-                initial={{ scale: 0.8 }} animate={{ scale: 1 }} 
-                style={{...styles.card, maxWidth: '400px', padding: '2rem'}}
-            >
+            <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} style={{...styles.card, maxWidth: '400px', padding: '2rem'}}>
                 <h3 style={{color:'#d32f2f', marginTop: 0}}>Leave Group? ⚠️</h3>
                 <p style={{fontSize:'0.95rem', color: '#555', marginBottom: '15px'}}>
                     This will remove YOU from the group. You will be placed back in the queue to find new peers.
                 </p>
                 <textarea 
-                    placeholder="Reason (Required) - e.g., Peers unresponsive"
+                    placeholder="Reason (Required)"
                     value={unpairReason} 
                     onChange={e => setUnpairReason(e.target.value)}
                     style={{width:'100%', padding:'10px', marginTop:'10px', borderRadius:'5px', border:'1px solid #ccc', fontFamily: 'inherit'}}
                 />
                 <div style={{display:'flex', gap:'10px', marginTop:'20px', justifyContent:'center'}}>
                     <button onClick={() => setShowUnpairModal(false)} style={{padding:'10px 20px', border:'1px solid #ccc', background:'white', borderRadius:'5px', cursor:'pointer'}}>Cancel</button>
-                    
-                    {/* CONFIRM BUTTON (Disabled if reason is empty) */}
                     <button 
                         onClick={handleLeaveGroup} 
                         disabled={!unpairReason.trim()}
-                        style={{
-                            background: '#d32f2f', 
-                            color: 'white', 
-                            border: 'none', 
-                            padding: '10px 20px', 
-                            borderRadius: '5px', 
-                            cursor: !unpairReason.trim() ? 'not-allowed' : 'pointer',
-                            opacity: !unpairReason.trim() ? 0.5 : 1,
-                            fontWeight: 'bold'
-                        }}
+                        style={{background: '#d32f2f', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: !unpairReason.trim() ? 'not-allowed' : 'pointer', opacity: !unpairReason.trim() ? 0.5 : 1, fontWeight: 'bold'}}
                     >
-                        Confirm Leave
+                        Confirm
                     </button>
                 </div>
             </motion.div>
@@ -261,82 +241,25 @@ const StatusPage = () => {
 };
 
 const styles = {
-  container: {
-    minHeight: '100vh',
-    background: colors.primary.berkeleyBlue,
-    display: 'flex', justifyContent: 'center', alignItems: 'center',
-    padding: '20px', fontFamily: fonts.main
-  },
-  loadingContainer: {
-    minHeight: '100vh', background: colors.primary.berkeleyBlue,
-    display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center'
-  },
-  card: {
-    background: colors.primary.white,
-    padding: '3rem', borderRadius: '20px',
-    maxWidth: '600px', width: '100%', textAlign: 'center',
-    boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
-  },
+  container: { minHeight: '100vh', background: colors.primary.berkeleyBlue, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', fontFamily: fonts.main },
+  loadingContainer: { minHeight: '100vh', background: colors.primary.berkeleyBlue, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' },
+  card: { background: colors.primary.white, padding: '3rem', borderRadius: '20px', maxWidth: '600px', width: '100%', textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' },
   title: { margin: '0 0 1.5rem 0', fontSize: '2rem' },
   subTitle: { color: colors.primary.berkeleyBlue, margin: '0 0 1rem 0' },
-  
-  // Success
-  successBox: {
-    background: '#e6fffa', 
-    border: `2px solid ${colors.primary.springGreen}`,
-    borderRadius: '15px', padding: '20px', textAlign: 'left'
-  },
+  successBox: { background: '#e6fffa', border: `2px solid ${colors.primary.springGreen}`, borderRadius: '15px', padding: '20px', textAlign: 'left' },
   list: { display: 'flex', flexDirection: 'column', gap: '15px' },
-  memberRow: {
-    background: 'white', padding: '15px', borderRadius: '10px',
-    boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
-  },
+  memberRow: { background: 'white', padding: '15px', borderRadius: '10px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' },
   memberName: { display: 'block', fontWeight: 'bold', fontSize: '1.1rem', color: colors.primary.berkeleyBlue, marginBottom: '5px' },
   contactInfo: { display: 'flex', flexDirection: 'column', fontSize: '0.9rem', color: '#555', gap: '2px' },
   note: { marginTop: '15px', fontStyle: 'italic', fontSize: '0.9rem', color: '#666' },
-
-  // Waiting
-  waitingBox: {
-    padding: '20px', background: '#f8f9fa', borderRadius: '15px', marginBottom: '20px'
-  },
+  waitingBox: { padding: '20px', background: '#f8f9fa', borderRadius: '15px', marginBottom: '20px' },
   waitingText: { fontSize: '1.1rem', lineHeight: '1.6', color: '#444', marginBottom: '20px' },
-  idBox: {
-    background: colors.secondary.electricBlue + '33', 
-    padding: '15px', borderRadius: '10px', border: `1px dashed ${colors.secondary.electricBlue}`,
-    display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '20px'
-  },
-  findBtn: {
-    width: '100%', padding: '15px', 
-    background: colors.primary.iris, color: 'white',
-    border: 'none', borderRadius: '30px', fontWeight: 'bold', 
-    fontSize: '1rem', cursor: 'pointer'
-  },
-  
-  // Notice
-  noticeBox: {
-    marginTop: '15px',
-    padding: '10px',
-    background: '#fff3cd', 
-    color: '#856404',      
-    border: '1px solid #ffeeba',
-    borderRadius: '8px',
-    fontSize: '0.9rem',
-    fontWeight: 'bold'
-  },
-
-  homeBtn: {
-    marginTop: '30px', padding: '12px 24px', background: 'transparent',
-    border: `2px solid ${colors.primary.iris}`, color: colors.primary.iris,
-    borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer',
-    transition: 'all 0.3s'
-  },
-
-  // Modal
-  modalOverlay: {
-    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-    background: 'rgba(0, 43, 86, 0.9)', 
-    display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
-  },
+  idBox: { background: colors.secondary.electricBlue + '33', padding: '15px', borderRadius: '10px', border: `1px dashed ${colors.secondary.electricBlue}`, display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '20px' },
+  findBtn: { width: '100%', padding: '15px', background: colors.primary.iris, color: 'white', border: 'none', borderRadius: '30px', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer' },
+  noticeBox: { marginTop: '15px', padding: '10px', background: '#fff3cd', color: '#856404', border: '1px solid #ffeeba', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 'bold' },
+  homeBtn: { marginTop: '30px', padding: '12px 24px', background: 'transparent', border: `2px solid ${colors.primary.iris}`, color: colors.primary.iris, borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s' },
+  retryBtn: { marginTop: '30px', padding: '12px 24px', background: 'white', border: 'none', color: colors.primary.berkeleyBlue, borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer' },
+  modalOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 43, 86, 0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
 };
 
 export default StatusPage;
