@@ -4,7 +4,7 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import { colors, fonts } from '../theme';
 import Spinner from '../components/Spinner';
-import { API_URL } from '../config'; // <--- FIX 1: Import API URL
+import { API_URL } from '../config';
 
 const StatusPage = () => {
   const { userId } = useParams();
@@ -12,10 +12,14 @@ const StatusPage = () => {
   const location = useLocation();
   
   const [status, setStatus] = useState(null);
-  const [error, setError] = useState(null); // <--- FIX 2: Add Error State
+  const [error, setError] = useState(null);
   const [loadingMatch, setLoadingMatch] = useState(false);
   const [matchMessage, setMatchMessage] = useState(null); 
   
+  // Retry Logic State
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 20; // Try for 10 times (approx 15 seconds) before giving up
+
   // --- UNPAIR STATE ---
   const [showUnpairModal, setShowUnpairModal] = useState(false);
   const [unpairReason, setUnpairReason] = useState("");
@@ -24,27 +28,41 @@ const StatusPage = () => {
 
   const fetchStatus = async () => {
     try {
-      // <--- FIX 3: Changed axios.post to axios.get (Standard for fetching data)
       const res = await axios.get(`${API_URL}/api/status/${userId}?t=${Date.now()}`);
+      
       if (res.data.success) {
         setStatus(res.data);
+        setError(null); // Clear error if we found them!
       } else {
-        setError("User not found.");
+        // User Not Found YET - This is key!
+        if (retryCount < MAX_RETRIES) {
+            console.log(`User not synced yet. Retrying... (${retryCount}/${MAX_RETRIES})`);
+            setRetryCount(prev => prev + 1);
+            // Do NOT set error yet, just let it keep loading
+        } else {
+            setError("User could not be found. Please contact support.");
+        }
       }
     } catch (err) {
       console.error("Error fetching status", err);
-      // <--- FIX 4: Stop the spinner if error occurs
-      setError("Failed to load status. Please check connection.");
+      if (retryCount >= MAX_RETRIES) {
+         setError("Connection failed. Please refresh.");
+      } else {
+         setRetryCount(prev => prev + 1);
+      }
     }
   };
 
   useEffect(() => {
     if (userId) {
+        // Initial fetch
         fetchStatus();
-        const interval = setInterval(fetchStatus, 5000); // Polling every 5s
+        
+        // Poll every 3 seconds (faster polling at start is better)
+        const interval = setInterval(fetchStatus, 3000); 
         return () => clearInterval(interval);
     }
-  }, [userId]);
+  }, [userId, retryCount]); // Dependency on retryCount ensures we keep checking
 
   const handleManualMatch = async () => {
     setLoadingMatch(true);
@@ -55,7 +73,10 @@ const StatusPage = () => {
       if (!res.data.matched) {
         setMatchMessage("No match found yet. Please try again soon!");
       }
-      await fetchStatus();
+      // Force an immediate status update
+      const statusRes = await axios.get(`${API_URL}/api/status/${userId}?t=${Date.now()}`);
+      if(statusRes.data.success) setStatus(statusRes.data);
+      
     } catch (err) {
       setMatchMessage("Could not check for matches. Please try again.");
     } finally {
@@ -76,8 +97,8 @@ const StatusPage = () => {
     }
   };
 
-  // <--- FIX 5: Render Error Screen if failed
-  if (error) return (
+  // Only show Error if we have EXHAUSTED retries AND still have no status
+  if (error && !status && retryCount >= MAX_RETRIES) return (
     <div style={styles.loadingContainer}>
        <h3 style={{color: colors.secondary.tomato}}>Error Loading Status</h3>
        <p style={{color: 'white', marginBottom: '20px'}}>{error}</p>
@@ -85,10 +106,13 @@ const StatusPage = () => {
     </div>
   );
 
+  // If we have no status yet, show loading (even if "User not found" happened once or twice)
   if (!status) return (
     <div style={styles.loadingContainer}>
        <Spinner size="40px" color={colors.secondary.electricBlue} />
-       <p style={{marginTop: '20px', color: 'white'}}>Loading status...</p>
+       <p style={{marginTop: '20px', color: 'white'}}>
+          {retryCount > 2 ? "Syncing your data..." : "Loading status..."}
+       </p>
     </div>
   );
 
