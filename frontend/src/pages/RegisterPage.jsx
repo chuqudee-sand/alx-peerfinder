@@ -98,7 +98,7 @@ const RegisterPage = () => {
         <form onSubmit={handleSubmit} style={styles.form}>
            <div style={styles.row}>
              <div style={styles.half}><label style={styles.label}>Full Name</label><input style={styles.input} name="name" onChange={handleChange} required /></div>
-             <div style={styles.half}><label style={styles.label}>Email(ALX Registered)</label><input style={styles.input} name="email" type="email" onChange={handleChange} required /></div>
+             <div style={styles.half}><label style={styles.label}>Email (ALX Registered)</label><input style={styles.input} name="email" type="email" onChange={handleChange} required /></div>
            </div>
            
            <label style={styles.label}>Phone Number (WhatsApp)</label>
@@ -224,3 +224,4 @@ const styles = {
 };
 
 export default RegisterPage;
+
