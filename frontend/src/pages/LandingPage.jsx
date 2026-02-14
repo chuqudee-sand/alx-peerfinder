@@ -76,7 +76,7 @@ const LandingPage = () => {
   // Helper to check restricted cohorts (VA C13 & AiCE C17)
   const isRestrictedCohort = () => {
     if (selectedProgram?.id === 'VA' && selectedCohort === 'Cohort 14') return true;
-    if (selectedProgram?.id === 'AiCE' && selectedCohort === 'Cohort 16') return true;
+    if (selectedProgram?.id === 'AiCE' && selectedCohort === 'Cohort 18') return true;
     return false;
   };
 
@@ -245,4 +245,5 @@ const styles = {
 
 
 export default LandingPage;
+
 
