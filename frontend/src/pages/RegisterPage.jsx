@@ -6,6 +6,19 @@ import { colors, fonts } from '../theme';
 import Spinner from '../components/Spinner';
 import { API_URL } from '../config';
 
+// --- FULL LIST OF COUNTRIES ---
+const africanCountries = [
+  "Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cabo Verde",
+  "Cameroon", "Central African Republic", "Chad", "Comoros", "Congo (Brazzaville)",
+  "Congo (Kinshasa)", "Côte d'Ivoire", "Djibouti", "Egypt", "Equatorial Guinea",
+  "Eritrea", "Eswatini", "Ethiopia", "Gabon", "Gambia", "Ghana", "Guinea",
+  "Guinea-Bissau", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi",
+  "Mali", "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger",
+  "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles",
+  "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania",
+  "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe", "Non-African"
+];
+
 const RegisterPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -85,7 +98,7 @@ const RegisterPage = () => {
         <form onSubmit={handleSubmit} style={styles.form}>
            <div style={styles.row}>
              <div style={styles.half}><label style={styles.label}>Full Name</label><input style={styles.input} name="name" onChange={handleChange} required /></div>
-             <div style={styles.half}><label style={styles.label}>Email (ALX)</label><input style={styles.input} name="email" type="email" onChange={handleChange} required /></div>
+             <div style={styles.half}><label style={styles.label}>Email(ALX Registered)</label><input style={styles.input} name="email" type="email" onChange={handleChange} required /></div>
            </div>
            
            <label style={styles.label}>Phone Number (WhatsApp)</label>
@@ -95,7 +108,10 @@ const RegisterPage = () => {
               <div style={styles.half}>
                   <label style={styles.label}>Country</label>
                   <select style={styles.select} name="country" onChange={handleChange} required>
-                      <option value="">--Select--</option><option value="Nigeria">Nigeria</option><option value="Ghana">Ghana</option><option value="Kenya">Kenya</option><option value="Egypt">Egypt</option><option value="South Africa">South Africa</option><option value="Other">Other</option>
+                      <option value="">--Select--</option>
+                      {africanCountries.map(country => (
+                        <option key={country} value={country}>{country}</option>
+                      ))}
                   </select>
               </div>
               <div style={styles.half}>
@@ -206,6 +222,5 @@ const styles = {
   submitButton: { padding: '15px', marginTop: '20px', background: `linear-gradient(45deg, ${colors.primary.iris}, ${colors.secondary.electricBlue})`, border: 'none', borderRadius: '30px', color: 'white', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer' },
   checkboxContainer: { display: 'flex', alignItems: 'center', marginTop: '10px' },
 };
-
 
 export default RegisterPage;
