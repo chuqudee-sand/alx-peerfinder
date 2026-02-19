@@ -221,6 +221,8 @@ def availability_match(a1, a2):
 def health():
     return jsonify({"status": "active", "version": "6.0-Validated"})
 
+
+#--------------------
 @app.route('/api/register', methods=['POST'])
 @api_wrapper
 def register():
@@ -236,10 +238,45 @@ def register():
     if not phone.startswith('+'): phone = '+' + phone.lstrip('+')
 
     df = download_csv()
-    if not df[(df['email'] == email) | (df['phone'] == phone)].empty:
-        existing = df[(df['email'] == email) | (df['phone'] == phone)].iloc[0]
-        return jsonify({"success": False, "is_duplicate": True, "user_id": str(existing['id']), "already_matched": bool(existing['matched'])})
+    
+    # Check if user already exists
+    existing_mask = (df['email'] == email) | (df['phone'] == phone)
+    if not df[existing_mask].empty:
+        idx = df[existing_mask].index[0]
+        existing = df.loc[idx]
+        
+        # If they are ALREADY MATCHED, just send them to their group page
+        if bool(existing['matched']):
+            return jsonify({
+                "success": False, 
+                "is_duplicate": True, 
+                "user_id": str(existing['id']), 
+                "already_matched": True
+            })
+        else:
+            # OPTION A TRIGGERED: They are NOT matched. Update their preferences!
+            df.at[idx, 'name'] = data['name']
+            df.at[idx, 'program'] = data['program']
+            df.at[idx, 'cohort'] = data['cohort']
+            df.at[idx, 'country'] = data.get('country', '')
+            df.at[idx, 'language'] = data.get('language', '')
+            df.at[idx, 'topic_module'] = data.get('topic_module', '')
+            df.at[idx, 'learning_preferences'] = data.get('learning_preferences', '')
+            df.at[idx, 'availability'] = data.get('availability', '')
+            df.at[idx, 'preferred_study_setup'] = data.get('preferred_study_setup', '')
+            df.at[idx, 'kind_of_support'] = data.get('kind_of_support', '')
+            df.at[idx, 'connection_type'] = data['connection_type']
+            df.at[idx, 'open_to_global_pairing'] = data.get('open_to_global_pairing', 'No')
+            
+            # Reset this so the algorithm knows to check them again immediately
+            df.at[idx, 'match_attempted'] = False 
+            
+            upload_csv(df)
+            
+            # Return success so the frontend moves them to the waiting queue page naturally
+            return jsonify({"success": True, "user_id": str(existing['id'])})
 
+    # If it's a completely NEW user:
     new_id = str(uuid.uuid4())
     new_user = {
         'id': new_id, 'name': data['name'], 'email': email, 'phone': phone,
@@ -261,6 +298,7 @@ def register():
     upload_csv(df)
     send_email(email, "You're in Queue!", f"Hi {data['name']},\n\nYour ID: {new_id}", data['program'])
     return jsonify({"success": True, "user_id": new_id})
+#--------------------
 
 @app.route('/api/status/<user_id>', methods=['GET'])
 @api_wrapper
@@ -312,7 +350,11 @@ def match():
         ]
 
         if str(user.get('open_to_global_pairing', '')).strip().upper() == 'YES':
-            pool = base_pool[base_pool['cohort'] == user['cohort']].copy()
+            # FIX 3: If user says YES, match with someone in SAME country, OR someone in a DIFFERENT country who ALSO said YES.
+            pool = base_pool[
+                (base_pool['cohort'] == user['cohort']) &
+                ((base_pool['country'] == user['country']) | (base_pool['open_to_global_pairing'].str.strip().str.upper() == 'YES'))
+            ].copy()
         else:
             pool = base_pool[
                 (base_pool['cohort'] == user['cohort']) &
@@ -326,6 +368,7 @@ def match():
             df.loc[all_idx, 'matched'] = True
             df.loc[all_idx, 'group_id'] = gid
             df.loc[all_idx, 'matched_timestamp'] = iso
+            df.loc[all_idx, 'unpair_reason'] = '' # FIX 2: Clear old unpair reason
             updated = True
             
     elif user['connection_type'] in ['offer', 'need']:
@@ -333,7 +376,11 @@ def match():
         base_pool = program_pool[program_pool['connection_type'] == target]
         
         if str(user.get('open_to_global_pairing', '')).strip().upper() == 'YES':
-            pool = base_pool[base_pool['cohort'] == user['cohort']].copy()
+            # FIX 3: Same strict Yes logic applies here
+            pool = base_pool[
+                (base_pool['cohort'] == user['cohort']) &
+                ((base_pool['country'] == user['country']) | (base_pool['open_to_global_pairing'].str.strip().str.upper() == 'YES'))
+            ].copy()
         else:
             pool = base_pool[
                 (base_pool['cohort'] == user['cohort']) &
@@ -347,6 +394,7 @@ def match():
             df.loc[[idx, pidx], 'matched'] = True
             df.loc[[idx, pidx], 'group_id'] = gid
             df.loc[[idx, pidx], 'matched_timestamp'] = iso
+            df.loc[[idx, pidx], 'unpair_reason'] = '' # FIX 2: Clear old unpair reason
             updated = True
 
     if updated:
@@ -362,15 +410,31 @@ def match():
 
 @app.route('/api/leave-group', methods=['POST'])
 @api_wrapper
-def leave_group():
-    data = request.get_json()
+def leave_group(user_id=None):
+    # Support both direct API calls and internal calls from admin_unpair
+    data = request.get_json() or {}
+    target_id = user_id or data.get('user_id')
+    
     df = download_csv()
-    user_rows = df[df['id'] == data.get('user_id')]
+    user_rows = df[df['id'] == target_id]
     if user_rows.empty: return jsonify({"error": "User not found"}), 404
+    
     idx = user_rows.index[0]
+    old_group_id = df.at[idx, 'group_id'] # Capture the group before clearing it
+    
     df.at[idx, 'matched'] = False
     df.at[idx, 'group_id'] = ''
     df.at[idx, 'unpair_reason'] = data.get('reason', 'User Requested')
+    
+    # FIX 1: Ghost Group Logic
+    if old_group_id:
+        remaining_members = df[df['group_id'] == old_group_id]
+        if len(remaining_members) == 1:
+            rem_idx = remaining_members.index[0]
+            df.at[rem_idx, 'matched'] = False
+            df.at[rem_idx, 'group_id'] = ''
+            # Stranded user goes back to queue, reason is kept blank/untouched
+            
     upload_csv(df)
     return jsonify({"success": True})
 
@@ -490,9 +554,7 @@ def dl_feedback():
 @app.route('/api/unpair/<user_id>', methods=['POST'])
 @api_wrapper
 def admin_unpair(user_id):
-    return leave_group() # Reuse logic
+    return leave_group(user_id=user_id) # Patched to pass the ID correctly
 
 if __name__ == '__main__':
-
     app.run(debug=True, port=5000, host='0.0.0.0')
-
