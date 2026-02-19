@@ -82,7 +82,10 @@ const StatusPage = () => {
         user_id: userId, 
         reason: unpairReason 
       });
-      alert("You have left the group.");
+      
+      // --- NEW: Updated Alert Message with Instructions ---
+      alert("You have successfully left the group. 🚫\n\n💡 TIP: If you want to change your preferences (like availability, topic, or group size), simply go back to the Home page and register again using the exact same email!");
+      
       window.location.reload(); 
     } catch (err) {
       alert("Error leaving group.");
