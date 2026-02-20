@@ -41,7 +41,7 @@ const StatusPage = () => {
       }
     } catch (err) {
       console.error("Fetch Error:", err);
-      setError("Unable to load status. Please check your internet connection.");
+      setError("Unable to load status. Please check your Email, User ID or internet connection.");
     }
   };
 
@@ -343,3 +343,4 @@ const styles = {
 };
 
 export default StatusPage;
+
