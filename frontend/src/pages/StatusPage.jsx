@@ -19,6 +19,7 @@ const StatusPage = () => {
   // --- UNPAIR STATE ---
   const [showUnpairModal, setShowUnpairModal] = useState(false);
   const [unpairReason, setUnpairReason] = useState("");
+  const [unpairAction, setUnpairAction] = useState('requeue'); // NEW: 'requeue' | 'delete'
   
   const isDuplicate = location.state?.isDuplicate;
 
@@ -80,15 +81,20 @@ const StatusPage = () => {
     try {
       await axios.post(`${API_URL}/api/leave-group`, { 
         user_id: userId, 
-        reason: unpairReason 
+        reason: status.matched ? unpairReason : 'Deleted from queue', // Use default reason if deleting from queue
+        delete_profile: unpairAction === 'delete' // PASSING THE NEW FLAG
       });
       
-      // --- NEW: Updated Alert Message with Instructions ---
-      alert("You have successfully left the group. 🚫\n\n💡 TIP: If you want to change your preferences (like availability, topic, or group size), simply go back to the Home page and register again using the exact same email!");
-      
-      window.location.reload(); 
+      if (unpairAction === 'delete') {
+          alert("Your profile has been completely deleted. You can re-register whenever you are ready! 👋");
+          navigate('/'); // Redirect to home because their status page no longer exists
+      } else {
+          // --- NEW: Updated Alert Message with Instructions ---
+          alert("You have successfully left the group. 🚫\n\n💡 TIP: If you want to change your preferences (like availability, topic, or group size), simply go back to the Home page and register again using the exact same email!");
+          window.location.reload(); 
+      }
     } catch (err) {
-      alert("Error leaving group.");
+      alert("Error processing your request.");
     }
   };
 
@@ -159,9 +165,9 @@ const StatusPage = () => {
             <p style={styles.note}>Please contact your peer(s) now. <br />Check your email for more details!</p>
 
             <div style={{marginTop: '30px', borderTop: '1px solid #eee', paddingTop: '15px', textAlign: 'center'}}>
-                <p style={{fontSize:'0.8rem', color:'#999', marginBottom: '5px'}}>Group inactive?</p>
+                <p style={{fontSize:'0.8rem', color:'#999', marginBottom: '5px'}}>Group inactive or need a break?</p>
                 <button 
-                    onClick={() => setShowUnpairModal(true)}
+                    onClick={() => { setUnpairAction('requeue'); setUnpairReason(""); setShowUnpairModal(true); }}
                     style={{background:'none', border:'none', color:'#d32f2f', textDecoration:'underline', cursor:'pointer', fontSize:'0.85rem'}}
                 >
                     Leave Group / Unpair Me
@@ -179,7 +185,7 @@ const StatusPage = () => {
             </p>
             <div style={styles.idBox}>
               <span>Your Unique ID:</span>
-              <strong style={{fontSize: '1.2rem', color: colors.primary.berkeleyBlue}}>{userId}</strong>
+              <strong style={{fontSize: '1.2rem', color: colors.primary.berkeleyBlue}}>{status.real_id || userId}</strong>
             </div>
             
             <motion.button 
@@ -202,7 +208,18 @@ const StatusPage = () => {
               </motion.div>
             )}
 
-            <p style={{fontSize: '0.8rem', color: '#666', marginTop: '10px'}}>
+            {/* NEW: Ability to delete profile while in queue */}
+            <div style={{marginTop: '30px', borderTop: '1px solid #ddd', paddingTop: '15px', textAlign: 'center'}}>
+                <p style={{fontSize:'0.8rem', color:'#999', marginBottom: '5px'}}>Need to take a break or entered wrong details?</p>
+                <button 
+                    onClick={() => { setUnpairAction('delete'); setShowUnpairModal(true); }}
+                    style={{background:'none', border:'none', color:'#d32f2f', textDecoration:'underline', cursor:'pointer', fontSize:'0.85rem'}}
+                >
+                    Delete My Request
+                </button>
+            </div>
+
+            <p style={{fontSize: '0.8rem', color: '#666', marginTop: '15px'}}>
               (Save this ID to check back later)
             </p>
           </div>
@@ -211,26 +228,62 @@ const StatusPage = () => {
         <button style={styles.homeBtn} onClick={() => navigate('/')}>Back to Home</button>
       </motion.div>
 
-      {/* UNPAIR MODAL */}
+      {/* ENHANCED UNPAIR MODAL */}
       {showUnpairModal && (
         <div style={styles.modalOverlay}>
-            <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} style={{...styles.card, maxWidth: '400px', padding: '2rem'}}>
-                <h3 style={{color:'#d32f2f', marginTop: 0}}>Leave Group? ⚠️</h3>
-                <p style={{fontSize:'0.95rem', color: '#555', marginBottom: '15px'}}>
-                    This will remove YOU from the group. You will be placed back in the queue to find new peers.
-                </p>
-                <textarea 
-                    placeholder="Reason (Required)"
-                    value={unpairReason} 
-                    onChange={e => setUnpairReason(e.target.value)}
-                    style={{width:'100%', padding:'10px', marginTop:'10px', borderRadius:'5px', border:'1px solid #ccc', fontFamily: 'inherit'}}
-                />
+            <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} style={{...styles.card, maxWidth: '450px', padding: '2rem'}}>
+                <h3 style={{color:'#d32f2f', marginTop: 0}}>
+                    {status.matched ? "Leave Group? ⚠️" : "Delete Request? ⚠️"}
+                </h3>
+                
+                {status.matched && (
+                    <div style={{textAlign: 'left', marginBottom: '15px', background: '#f8f9fa', padding: '15px', borderRadius: '8px', border: '1px solid #eee'}}>
+                        <label style={{display: 'flex', gap: '10px', marginBottom: '12px', cursor: 'pointer', fontSize: '0.95rem', color: colors.primary.berkeleyBlue}}>
+                            <input 
+                                type="radio" name="action" 
+                                checked={unpairAction === 'requeue'} 
+                                onChange={() => setUnpairAction('requeue')} 
+                                style={{accentColor: colors.primary.iris, marginTop: '4px'}}
+                            />
+                            <span><strong>Rematch me again</strong> <br/><span style={{fontSize:'0.8rem', color:'#666'}}>Return to the queue for a new partner</span></span>
+                        </label>
+                        <label style={{display: 'flex', gap: '10px', cursor: 'pointer', fontSize: '0.95rem', color: colors.primary.berkeleyBlue}}>
+                            <input 
+                                type="radio" name="action" 
+                                checked={unpairAction === 'delete'} 
+                                onChange={() => setUnpairAction('delete')} 
+                                style={{accentColor: colors.primary.iris, marginTop: '4px'}}
+                            />
+                            <span><strong>Completely delete me</strong> <br/><span style={{fontSize:'0.8rem', color:'#666'}}>I'll re-register when I'm ready</span></span>
+                        </label>
+                    </div>
+                )}
+
+                {unpairAction === 'delete' && !status.matched && (
+                    <p style={{fontSize:'0.95rem', color: '#555', marginBottom: '15px'}}>
+                        This will permanently delete your request from the system. You will need to register again to find a peer.
+                    </p>
+                )}
+
+                {status.matched && (
+                    <textarea 
+                        placeholder="Reason for leaving (Required) - e.g., Ghosting, Inactive"
+                        value={unpairReason} 
+                        onChange={e => setUnpairReason(e.target.value)}
+                        style={{width:'100%', padding:'10px', marginTop:'10px', borderRadius:'5px', border:'1px solid #ccc', fontFamily: 'inherit'}}
+                    />
+                )}
+
                 <div style={{display:'flex', gap:'10px', marginTop:'20px', justifyContent:'center'}}>
                     <button onClick={() => setShowUnpairModal(false)} style={{padding:'10px 20px', border:'1px solid #ccc', background:'white', borderRadius:'5px', cursor:'pointer'}}>Cancel</button>
                     <button 
                         onClick={handleLeaveGroup} 
-                        disabled={!unpairReason.trim()}
-                        style={{background: '#d32f2f', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: !unpairReason.trim() ? 'not-allowed' : 'pointer', opacity: !unpairReason.trim() ? 0.5 : 1, fontWeight: 'bold'}}
+                        disabled={status.matched && !unpairReason.trim()}
+                        style={{
+                            background: '#d32f2f', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '5px', 
+                            cursor: (status.matched && !unpairReason.trim()) ? 'not-allowed' : 'pointer', 
+                            opacity: (status.matched && !unpairReason.trim()) ? 0.5 : 1, fontWeight: 'bold'
+                        }}
                     >
                         Confirm
                     </button>
