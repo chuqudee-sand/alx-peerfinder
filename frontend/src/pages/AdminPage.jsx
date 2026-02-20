@@ -104,6 +104,14 @@ const AdminPage = () => {
     } catch (err) { alert("Feedback download failed"); }
   };
 
+  // NEW: Download Session Feedback
+  const downloadSessionFeedback = async () => {
+    try {
+      const res = await axios.post(`${API_URL}/api/admin/download-session-feedback`, { password }, { responseType: 'blob' });
+      triggerDownload(res.data, 'peer_session_feedback.csv');
+    } catch (err) { alert("Session Feedback download failed"); }
+  };
+
   const triggerDownload = (data, filename) => {
     const url = window.URL.createObjectURL(new Blob([data]));
     const link = document.createElement('a');
@@ -165,6 +173,8 @@ const AdminPage = () => {
         <div style={{display:'flex', gap:'10px'}}>
             <button onClick={downloadCSV} style={styles.btnSecondary}>📥 Data</button>
             <button onClick={downloadFeedback} style={{...styles.btnSecondary, background: colors.secondary.tomato, color:'white'}}>📥 Feedback</button>
+            {/* NEW BUTTON INSERTED HERE */}
+            <button onClick={downloadSessionFeedback} style={{...styles.btnSecondary, background: colors.primary.springGreen, color: colors.primary.berkeleyBlue}}>📥 Session Feedback</button>
         </div>
       </div>
 
