@@ -611,6 +611,14 @@ def submit_peer_session_feedback():
     
     return jsonify({"success": True})
 
+@app.route('/api/admin/download-session-feedback', methods=['POST'])
+@api_wrapper
+def dl_session_feedback():
+    if request.get_json().get('password') != ADMIN_PASSWORD: 
+        return jsonify({"error": "Unauthorized"}), 401
+    return Response(download_csv(SESSION_FEEDBACK_OBJECT_KEY).to_csv(index=False), mimetype='text/csv')
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host='0.0.0.0')
+
 
