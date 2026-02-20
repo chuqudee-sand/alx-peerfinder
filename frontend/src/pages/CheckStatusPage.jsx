@@ -26,7 +26,7 @@ const CheckStatusPage = () => {
       >
         <h1 style={styles.title}>Check Match Status 🔍</h1>
         <p style={styles.subtitle}>
-          Enter the unique User ID you received in your email or when you registered.
+          Enter your registered email address or the unique User ID you received in your email or when you registered.
         </p>
         
         <form onSubmit={handleSubmit} style={styles.form}>
@@ -88,5 +88,6 @@ const styles = {
     boxShadow: `0 5px 15px ${colors.primary.iris}66`
   }
 };
+
 
 export default CheckStatusPage;
