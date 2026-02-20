@@ -45,6 +45,7 @@ s3 = boto3.client(
 # === FILE NAMES ===
 CSV_OBJECT_KEY = 'peer_matching_data_v2.csv' 
 FEEDBACK_OBJECT_KEY = 'peer_finder_feedback.csv'
+SESSION_FEEDBACK_OBJECT_KEY = 'peer_session_feedback.csv' # <--- NEW
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 
 # === PROGRAM CREDENTIALS ===
@@ -556,5 +557,60 @@ def dl_feedback():
 def admin_unpair(user_id):
     return leave_group(user_id=user_id) # Patched to pass the ID correctly
 
+#---SESSION FEEDBACK------
+@app.route('/api/peer-feedback', methods=['POST'])
+@api_wrapper
+def submit_peer_session_feedback():
+    data = request.get_json()
+    
+    # Download the session feedback CSV (or create an empty one if it doesn't exist yet)
+    df = download_csv(SESSION_FEEDBACK_OBJECT_KEY)
+    
+    # Create the new row mapping exactly to the React form state
+    new_row = {
+        'id': str(uuid.uuid4()),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        'email': data.get('email', ''),
+        'program': data.get('program', ''),
+        'session_happened': data.get('session_happened', ''),
+        
+        # If No
+        'no_session_reason': data.get('no_session_reason', ''),
+        'rematch_request': data.get('rematch_request', ''),
+        
+        # If Yes
+        'role': data.get('role', ''),
+        'peer_rating': data.get('peer_rating', ''),
+        'session_rating': data.get('session_rating', ''),
+        
+        # Volunteer specific
+        'v_preparedness': data.get('v_preparedness', ''),
+        'v_issue_discussed': data.get('v_issue_discussed', ''),
+        'v_confidence': data.get('v_confidence', ''),
+        'v_commit_action': data.get('v_commit_action', ''),
+        'v_help_submit': data.get('v_help_submit', ''),
+        'v_worked_well': data.get('v_worked_well', ''),
+        'v_improve': data.get('v_improve', ''),
+        
+        # Help Seeker / Buddy specific
+        'h_respected': data.get('h_respected', ''),
+        'h_clarified': data.get('h_clarified', ''),
+        'h_outcome': data.get('h_outcome', ''),
+        'h_request_again': data.get('h_request_again', ''),
+        'h_most_helpful': data.get('h_most_helpful', ''),
+        'h_improve': data.get('h_improve', ''),
+        
+        # Safeguard
+        'safeguard_issue': data.get('safeguard_issue', ''),
+        'safeguard_details': data.get('safeguard_details', '')
+    }
+    
+    # Append the new row and upload back to S3
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    upload_csv(df, SESSION_FEEDBACK_OBJECT_KEY)
+    
+    return jsonify({"success": True})
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host='0.0.0.0')
+
