@@ -100,7 +100,7 @@ const PeerFeedbackPage = () => {
           
           {/* --- BASE INFO --- */}
           <div style={styles.section}>
-            <label style={styles.label}>Your ALX Email Address *</label>
+            <label style={styles.label}>Your Learning Email Address *</label>
             <input style={styles.input} type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="To help us track and spotlight you!" />
 
             <label style={styles.label}>Your Program *</label>
