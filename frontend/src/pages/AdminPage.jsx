@@ -17,6 +17,10 @@ const AdminPage = () => {
   // Selection State
   const [selectedIds, setSelectedIds] = useState([]);
 
+  // NEW: Pagination State for Groups
+  const [currentGroupPage, setCurrentGroupPage] = useState(1);
+  const groupsPerPage = 21; 
+
   // Modal State
   const [modal, setModal] = useState({ isOpen: false, type: null, title: '', message: '', isSuccess: false, action: null });
 
@@ -104,7 +108,6 @@ const AdminPage = () => {
     } catch (err) { alert("Feedback download failed"); }
   };
 
-  // NEW: Download Session Feedback
   const downloadSessionFeedback = async () => {
     try {
       const res = await axios.post(`${API_URL}/api/admin/download-session-feedback`, { password }, { responseType: 'blob' });
@@ -143,6 +146,14 @@ const AdminPage = () => {
     return acc;
   }, {});
 
+  // NEW: Pagination Logic for Matches Tab
+  const matchedGroupsArray = Object.entries(matchedGroups);
+  const totalGroupPages = Math.ceil(matchedGroupsArray.length / groupsPerPage);
+  const paginatedGroups = matchedGroupsArray.slice(
+    (currentGroupPage - 1) * groupsPerPage, 
+    currentGroupPage * groupsPerPage
+  );
+
   // Chart Data
   const cohorts = {}; const countries = {}; const daysUnpaired = {};
   programLearners.forEach(l => {
@@ -166,14 +177,17 @@ const AdminPage = () => {
       <div style={styles.topBar}>
         <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
             <h1 style={{color: 'white', margin: 0}}>Admin</h1>
-            <select value={programFilter} onChange={e => setProgramFilter(e.target.value)} style={styles.programSelect}>
+            <select 
+              value={programFilter} 
+              onChange={e => { setProgramFilter(e.target.value); setCurrentGroupPage(1); }} 
+              style={styles.programSelect}
+            >
                 <option value="All">All Programs</option><option value="VA">VA</option><option value="AiCE">AiCE</option><option value="PF">PF</option>
             </select>
         </div>
         <div style={{display:'flex', gap:'10px'}}>
             <button onClick={downloadCSV} style={styles.btnSecondary}>📥 Data</button>
             <button onClick={downloadFeedback} style={{...styles.btnSecondary, background: colors.secondary.tomato, color:'white'}}>📥 Feedback</button>
-            {/* NEW BUTTON INSERTED HERE */}
             <button onClick={downloadSessionFeedback} style={{...styles.btnSecondary, background: colors.primary.springGreen, color: colors.primary.berkeleyBlue}}>📥 Session Feedback</button>
         </div>
       </div>
@@ -181,7 +195,7 @@ const AdminPage = () => {
       <div style={styles.tabs}>
         <TabButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} label="Analytics" />
         <TabButton active={activeTab === 'unpaired'} onClick={() => setActiveTab('unpaired')} label={`Unpaired (${unpairedList.length})`} />
-        <TabButton active={activeTab === 'matches'} onClick={() => setActiveTab('matches')} label={`Active Groups (${Object.keys(matchedGroups).length})`} />
+        <TabButton active={activeTab === 'matches'} onClick={() => setActiveTab('matches')} label={`Active Groups (${matchedGroupsArray.length})`} />
       </div>
 
       <div style={styles.contentArea}>
@@ -235,22 +249,45 @@ const AdminPage = () => {
         )}
 
         {activeTab === 'matches' && (
-          <div style={styles.groupsGrid}>
-            {Object.entries(matchedGroups).map(([groupId, members]) => (
-              <div key={groupId} style={styles.groupCard}>
-                <div style={styles.groupHeader}>
-                  <span style={{fontWeight:'bold', color: colors.primary.berkeleyBlue}}>{members[0].program} Group ({members.length})</span>
-                  <button style={styles.btnUnpair} onClick={() => initiateUnpairGroup(members[0].id, members[0].name + "'s Group")}>Unpair 🚫</button>
+          <div>
+            <div style={styles.groupsGrid}>
+              {paginatedGroups.map(([groupId, members]) => (
+                <div key={groupId} style={styles.groupCard}>
+                  <div style={styles.groupHeader}>
+                    <span style={{fontWeight:'bold', color: colors.primary.berkeleyBlue}}>{members[0].program} Group ({members.length})</span>
+                    <button style={styles.btnUnpair} onClick={() => initiateUnpairGroup(members[0].id, members[0].name + "'s Group")}>Unpair 🚫</button>
+                  </div>
+                  <div style={styles.groupMembers}>
+                    {members.map(m => (
+                      <div key={m.id} style={styles.memberChip}>
+                        <span style={{fontWeight:'bold'}}>{m.name}</span> <span style={styles.subText}>{m.email}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div style={styles.groupMembers}>
-                  {members.map(m => (
-                    <div key={m.id} style={styles.memberChip}>
-                      <span style={{fontWeight:'bold'}}>{m.name}</span> <span style={styles.subText}>{m.email}</span>
-                    </div>
-                  ))}
-                </div>
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalGroupPages > 1 && (
+              <div style={styles.paginationContainer}>
+                <button 
+                  style={currentGroupPage === 1 ? styles.pageBtnDisabled : styles.pageBtn} 
+                  disabled={currentGroupPage === 1} 
+                  onClick={() => setCurrentGroupPage(p => p - 1)}
+                >
+                  &larr; Previous
+                </button>
+                <span style={styles.pageText}>Page {currentGroupPage} of {totalGroupPages}</span>
+                <button 
+                  style={currentGroupPage === totalGroupPages ? styles.pageBtnDisabled : styles.pageBtn} 
+                  disabled={currentGroupPage === totalGroupPages} 
+                  onClick={() => setCurrentGroupPage(p => p + 1)}
+                >
+                  Next &rarr;
+                </button>
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
@@ -366,7 +403,13 @@ const styles = {
   modalActions: { display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '20px' },
   btnConfirm: { padding: '8px 20px', background: colors.primary.iris, color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight:'bold' },
   btnCancel: { padding: '8px 20px', background: '#ccc', color: '#333', border: 'none', borderRadius: '5px', cursor: 'pointer' },
-  badge: { background: '#fff3e0', color: '#e65100', padding: '3px 8px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }
+  badge: { background: '#fff3e0', color: '#e65100', padding: '3px 8px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' },
+  
+  // NEW PAGINATION STYLES
+  paginationContainer: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginTop: '30px', padding: '10px' },
+  pageBtn: { padding: '8px 16px', background: 'white', border: `1px solid ${colors.primary.iris}`, color: colors.primary.iris, borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' },
+  pageBtnDisabled: { padding: '8px 16px', background: '#f0f0f0', border: '1px solid #ddd', color: '#aaa', borderRadius: '5px', cursor: 'not-allowed' },
+  pageText: { fontWeight: 'bold', color: colors.primary.berkeleyBlue }
 };
 
 const styleSheet = document.createElement("style");
