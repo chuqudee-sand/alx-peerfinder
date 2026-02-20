@@ -301,17 +301,30 @@ def register():
     return jsonify({"success": True, "user_id": new_id})
 #--------------------
 
-@app.route('/api/status/<user_id>', methods=['GET'])
+@app.route('/api/status/<identifier>', methods=['GET'])
 @api_wrapper
-def status(user_id):
+def status(identifier):
     df = download_csv()
-    user = df[df['id'] == user_id]
-    if user.empty: return jsonify({"error": "Not found"}), 404
-    u = user.iloc[0]
-    res = {"matched": bool(u['matched']), "user": {"name": u['name'], "program": u.get('program', ''), "cohort": u['cohort']}}
+    ident_lower = identifier.strip().lower()
+    
+    # NEW: Search by either ID OR Email Address
+    user_rows = df[(df['id'] == identifier.strip()) | (df['email'].str.lower() == ident_lower)]
+    
+    if user_rows.empty: 
+        return jsonify({"error": "Not found"}), 404
+        
+    u = user_rows.iloc[0]
+    
+    res = {
+        "matched": bool(u['matched']), 
+        "user": {"name": u['name'], "program": u.get('program', ''), "cohort": u['cohort']},
+        "real_id": str(u['id']) # Pass back the real ID just in case the frontend needs it
+    }
+    
     if bool(u['matched']) and u['group_id']:
         grp = df[df['group_id'] == u['group_id']]
         res['group'] = grp[['name', 'email', 'phone', 'connection_type']].fillna("").to_dict('records')
+        
     return jsonify(res)
 
 @app.route('/api/match', methods=['POST'])
@@ -620,5 +633,3 @@ def dl_session_feedback():
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host='0.0.0.0')
-
-
