@@ -5,7 +5,6 @@ import axios from 'axios';
 import { colors, fonts } from '../theme';
 import { API_URL } from '../config';
 
-
 // --- SLIDESHOW DATA ---
 const slides = [
   { id: 1, image: "/slide1.jpg", text: "It's a Match! 🎉", subtext: "Register and get paired instantly." },
@@ -173,8 +172,20 @@ const LandingPage = () => {
         © 2026 Peer Finder. All rights reserved.
       </footer>
 
+      {/* --- FLOATING BUTTONS --- */}
       <button onClick={() => setShowFeedback(true)} style={styles.feedbackBtn}>Rate the Peer Finder ⭐</button>
       
+      {/* NEW: Peer Session Feedback Button */}
+      <motion.button 
+        whileHover={{ scale: 1.05 }} 
+        whileTap={{ scale: 0.95 }} 
+        onClick={() => navigate('/peer-feedback')} 
+        style={styles.peerFeedbackBtn}
+      >
+        IMPORTANT🌟 Rate Your Peer(s) / Session
+      </motion.button>
+      
+      {/* Tool Feedback Modal */}
       {showFeedback && (
         <div style={styles.modalOverlay} onClick={() => setShowFeedback(false)}>
           <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
@@ -240,10 +251,8 @@ const styles = {
   infoTitle: { fontSize: '1.5rem', fontWeight: '700', marginBottom: '1rem' },
   infoText: { fontSize: '1.1rem', lineHeight: '1.6', maxWidth: '700px', margin: '0 auto' },
   footer: { background: colors.primary.berkeleyBlue, color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: '2rem', fontSize: '0.9rem', borderTop: '1px solid rgba(255,255,255,0.1)' },
-  feedbackBtn: { position: 'fixed', bottom: '20px', left: '20px', padding: '10px 20px', borderRadius: '30px', border: 'none', background: colors.primary.iris, color: 'white', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: '5px' }
+  feedbackBtn: { position: 'fixed', bottom: '20px', left: '20px', padding: '10px 20px', borderRadius: '30px', border: 'none', background: colors.primary.iris, color: 'white', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: '5px', zIndex: 100 },
+  peerFeedbackBtn: { position: 'fixed', bottom: '20px', right: '20px', padding: '12px 24px', borderRadius: '30px', border: 'none', background: colors.secondary.tomato, color: 'white', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 100 }
 };
 
-
 export default LandingPage;
-
-
