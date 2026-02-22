@@ -20,8 +20,9 @@ const StatusPage = () => {
   const [showUnpairModal, setShowUnpairModal] = useState(false);
   const [unpairReason, setUnpairReason] = useState("");
   const [unpairAction, setUnpairAction] = useState('requeue');
+  const [loadingUnpair, setLoadingUnpair] = useState(false); // NEW: Spinner state for unpairing
   
-  // NEW: Custom Feedback Modal State
+  // Custom Feedback Modal State
   const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, title: '', message: '', type: 'success', redirect: null });
   
   const isDuplicate = location.state?.isDuplicate;
@@ -60,7 +61,6 @@ const StatusPage = () => {
     setMatchMessage(null); 
     
     try {
-      // FIX: Ensure we use the real UUID, not the email, if they logged in with an email
       const activeId = status?.real_id || userId; 
       const res = await axios.post(`${API_URL}/api/match`, { user_id: activeId });
       if (!res.data.matched) {
@@ -75,10 +75,8 @@ const StatusPage = () => {
   };
 
   const handleLeaveGroup = async () => {
+    setLoadingUnpair(true); // Start the spinner
     try {
-      setShowUnpairModal(false); // Hide input modal immediately
-      
-      // FIX: Ensure we use the real UUID from the backend, not the email they typed in the URL
       const activeId = status?.real_id || userId;
       
       await axios.post(`${API_URL}/api/leave-group`, { 
@@ -87,7 +85,8 @@ const StatusPage = () => {
         delete_profile: unpairAction === 'delete' 
       });
       
-      // Trigger Custom Feedback Modal instead of native browser alert
+      setShowUnpairModal(false); // Hide input modal only AFTER successful api call
+      
       if (unpairAction === 'delete') {
           setFeedbackModal({
               isOpen: true,
@@ -106,6 +105,7 @@ const StatusPage = () => {
           });
       }
     } catch (err) {
+      setShowUnpairModal(false);
       setFeedbackModal({
           isOpen: true,
           title: "Error ❌",
@@ -113,6 +113,8 @@ const StatusPage = () => {
           type: "error",
           redirect: null
       });
+    } finally {
+      setLoadingUnpair(false); // Stop the spinner
     }
   };
 
@@ -164,15 +166,33 @@ const StatusPage = () => {
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} style={styles.successBox}>
             <h3 style={styles.subTitle}>Meet Your Peer Group:</h3>
             <div style={styles.list}>
-              {status.group?.map((member, idx) => (
-                 <div key={idx} style={styles.memberRow}>
-                   <span style={styles.memberName}>{member.name}</span>
-                   <div style={styles.contactInfo}>
-                     <span>📧 {member.email}</span>
-                     <span>📱 {member.phone}</span>
+              {status.group?.map((member, idx) => {
+                 // Check if this card belongs to the current user
+                 const isMe = member.name === status.user?.name;
+                 // Clean the phone number for WhatsApp link
+                 const cleanPhone = String(member.phone || '').replace(/\D/g, '');
+
+                 return (
+                   <div key={idx} style={styles.memberRow}>
+                     <span style={styles.memberName}>{member.name} {isMe && <span style={{color: '#888', fontSize: '0.9rem'}}>(You)</span>}</span>
+                     <div style={styles.contactInfo}>
+                       <span>📧 {member.email}</span>
+                       <span>📱 {member.phone}</span>
+                     </div>
+                     {/* WhatsApp Button logic */}
+                     {!isMe && cleanPhone && (
+                       <a 
+                         href={`https://wa.me/${cleanPhone}`} 
+                         target="_blank" 
+                         rel="noopener noreferrer" 
+                         style={styles.waBtn}
+                       >
+                         💬 Message on WhatsApp
+                       </a>
+                     )}
                    </div>
-                 </div>
-              ))}
+                 );
+              })}
             </div>
             <p style={styles.note}>Please contact your peer(s) now. <br />Check your email for more details!</p>
 
@@ -278,17 +298,21 @@ const StatusPage = () => {
                   )}
 
                   <div style={{display:'flex', gap:'10px', marginTop:'20px', justifyContent:'center'}}>
-                      <button onClick={() => setShowUnpairModal(false)} style={{padding:'10px 20px', border:'1px solid #ccc', background:'white', borderRadius:'5px', cursor:'pointer'}}>Cancel</button>
+                      <button onClick={() => setShowUnpairModal(false)} style={{padding:'10px 20px', border:'1px solid #ccc', background:'white', borderRadius:'5px', cursor:'pointer'}} disabled={loadingUnpair}>Cancel</button>
                       <button 
                           onClick={handleLeaveGroup} 
-                          disabled={status.matched && !unpairReason.trim()}
+                          disabled={(status.matched && !unpairReason.trim()) || loadingUnpair}
                           style={{
                               background: '#d32f2f', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '5px', 
-                              cursor: (status.matched && !unpairReason.trim()) ? 'not-allowed' : 'pointer', 
-                              opacity: (status.matched && !unpairReason.trim()) ? 0.5 : 1, fontWeight: 'bold'
+                              cursor: ((status.matched && !unpairReason.trim()) || loadingUnpair) ? 'not-allowed' : 'pointer', 
+                              opacity: ((status.matched && !unpairReason.trim()) || loadingUnpair) ? 0.5 : 1, fontWeight: 'bold'
                           }}
                       >
-                          Confirm
+                          {loadingUnpair ? (
+                              <div style={{display:'flex', gap:'8px', alignItems:'center', justifyContent:'center'}}>
+                                  <Spinner size="16px" /> Processing...
+                              </div>
+                          ) : "Confirm"}
                       </button>
                   </div>
               </motion.div>
@@ -296,7 +320,7 @@ const StatusPage = () => {
         )}
       </AnimatePresence>
 
-      {/* NEW: CUSTOM FEEDBACK SUCCESS/ERROR MODAL */}
+      {/* CUSTOM FEEDBACK SUCCESS/ERROR MODAL */}
       <AnimatePresence>
         {feedbackModal.isOpen && (
           <div style={styles.modalOverlay}>
@@ -339,8 +363,8 @@ const styles = {
   homeBtn: { marginTop: '30px', padding: '12px 24px', background: 'transparent', border: `2px solid ${colors.primary.iris}`, color: colors.primary.iris, borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s' },
   retryBtn: { marginTop: '30px', padding: '12px 24px', background: 'white', border: 'none', color: colors.primary.berkeleyBlue, borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer' },
   modalOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 43, 86, 0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-  modalOkBtn: { padding: '12px 30px', background: colors.primary.iris, color: 'white', border: 'none', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }
+  modalOkBtn: { padding: '12px 30px', background: colors.primary.iris, color: 'white', border: 'none', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' },
+  waBtn: { display: 'inline-block', marginTop: '12px', padding: '8px 16px', backgroundColor: '#25D366', color: 'white', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.85rem', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }
 };
 
 export default StatusPage;
-
