@@ -252,10 +252,11 @@ const styles = {
   infoText: { fontSize: '1.1rem', lineHeight: '1.6', maxWidth: '700px', margin: '0 auto' },
   footer: { background: colors.primary.berkeleyBlue, color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: '2rem', fontSize: '0.9rem', borderTop: '1px solid rgba(255,255,255,0.1)' },
   feedbackBtn: { position: 'fixed', bottom: '20px', left: '20px', padding: '10px 20px', borderRadius: '30px', border: 'none', background: colors.primary.iris, color: 'white', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: '5px', zIndex: 100 },
-  peerFeedbackBtn: { position: 'fixed', bottom: '20px', right: '20px', padding: '12px 24px', borderRadius: '30px', border: 'none', background: colors.primary.springGreen, color: 'white', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 100 }
+  peerFeedbackBtn: { position: 'fixed', bottom: '20px', right: '20px', padding: '12px 24px', borderRadius: '30px', border: 'none', background: colors.secondary.turquoise, color: 'white', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 100 }
 };
 
 export default LandingPage;
+
 
 
 
