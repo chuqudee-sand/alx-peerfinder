@@ -89,12 +89,12 @@ const PeerFeedbackPage = () => {
           
           {/* --- BASE INFO --- */}
           <div style={styles.section}>
-            <label style={styles.label}>Your ALX Email Address *</label>
+            <label style={styles.label}>Your Learning Email Address *</label>
             <input style={styles.input} type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="Your email" />
 
             {/* NEW: PEER EMAIL FOR LEADERBOARD */}
-            <label style={styles.label}>Your Peer's ALX Email Address <span style={{color:'#888', fontWeight:'normal'}}>(Optional)</span></label>
-            <input style={styles.input} type="email" name="peer_email" value={formData.peer_email} onChange={handleChange} placeholder="Required to give them Leaderboard points!" />
+            <label style={styles.label}>Your Peer's Learning Email Address <span style={{color:'#888', fontWeight:'normal'}}>(Optional)</span></label>
+            <input style={styles.input} type="email" name="peer_email" value={formData.peer_email} onChange={handleChange} placeholder="Peer's Email (Required)" />
 
             <label style={styles.label}>Your Program *</label>
             <select style={styles.select} name="program" value={formData.program} onChange={handleChange} required>
