@@ -281,7 +281,7 @@ def register():
 
     df = download_csv()
     
-    existing_mask = (df['email'] == email) | (df['phone'] == phone)
+    existing_mask = ((df['email'] == email) | (df['phone'] == phone)) & (df['connection_type'] == data['connection_type'])
     if not df[existing_mask].empty:
         idx = df[existing_mask].index[0]
         existing = df.loc[idx]
@@ -347,12 +347,15 @@ def register():
     
     return jsonify({"success": True, "user_id": new_id})
 
+
 @app.route('/api/status/<identifier>', methods=['GET'])
 @api_wrapper
 def status(identifier):
     df = download_csv()
     ident_lower = identifier.strip().lower()
-    user_rows = df[(df['id'] == identifier.strip()) | (df['email'].str.lower() == ident_lower)]
+    
+    # UPDATE: Sort by timestamp so email login grabs the most recent profile
+    user_rows = df[(df['id'] == identifier.strip()) | (df['email'].str.lower() == ident_lower)].sort_values(by='timestamp', ascending=False)
     
     if user_rows.empty: 
         return jsonify({"error": "Not found"}), 404
@@ -369,6 +372,7 @@ def status(identifier):
         res['group'] = grp[['name', 'email', 'phone', 'connection_type']].fillna("").to_dict('records')
         
     return jsonify(res)
+
 
 @app.route('/api/match', methods=['POST'])
 @api_wrapper
@@ -617,6 +621,7 @@ def submit_peer_session_feedback():
         'id': str(uuid.uuid4()),
         'timestamp': datetime.now(timezone.utc).isoformat(),
         'email': data.get('email', ''),
+        'peer_email': data.get('peer_email', ''), # <--- ADD THIS LINE
         'program': data.get('program', ''),
         'session_happened': data.get('session_happened', ''),
         'no_session_reason': data.get('no_session_reason', ''),
@@ -653,5 +658,43 @@ def dl_session_feedback():
         return jsonify({"error": "Unauthorized"}), 401
     return Response(download_csv(SESSION_FEEDBACK_OBJECT_KEY).to_csv(index=False), mimetype='text/csv')
 
+
+@app.route('/api/leaderboard', methods=['GET'])
+@api_wrapper
+def get_leaderboard():
+    df_feedback = download_csv(SESSION_FEEDBACK_OBJECT_KEY)
+    if df_feedback.empty or 'peer_email' not in df_feedback.columns:
+        return jsonify({"success": True, "leaderboard": []})
+        
+    df_users = download_csv(CSV_OBJECT_KEY)
+    
+    # Clean data
+    df_feedback['peer_email'] = df_feedback['peer_email'].astype(str).str.strip().str.lower()
+    df_feedback['peer_rating'] = pd.to_numeric(df_feedback['peer_rating'], errors='coerce').fillna(0)
+    
+    valid_feedback = df_feedback[df_feedback['peer_email'] != '']
+    
+    # Group by peer_email and sum the star ratings!
+    leaders = valid_feedback.groupby('peer_email')['peer_rating'].sum().reset_index()
+    leaders = leaders.sort_values(by='peer_rating', ascending=False).head(10) # Top 10
+    
+    leaderboard = []
+    for _, row in leaders.iterrows():
+        p_email = row['peer_email']
+        score = int(row['peer_rating'])
+        
+        # Map email to name from the main database
+        user_match = df_users[df_users['email'].str.lower() == p_email]
+        if not user_match.empty:
+            name = user_match.iloc[0]['name']
+        else:
+            name = p_email.split('@')[0] # Fallback if name not found
+            
+        leaderboard.append({"name": name, "score": score})
+        
+    return jsonify({"success": True, "leaderboard": leaderboard})
+    
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host='0.0.0.0')
+
