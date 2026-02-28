@@ -93,7 +93,7 @@ const PeerFeedbackPage = () => {
             <input style={styles.input} type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="Your email" />
 
             {/* NEW: PEER EMAIL FOR LEADERBOARD */}
-            <label style={styles.label}>Your Peer's Learning Email Address <span style={{color:'#888', fontWeight:'normal'}}>(Optional)</span></label>
+            <label style={styles.label}>Your Peer's Learning Email Address <span style={{color:'#888', fontWeight:'normal'}}>(Required)</span></label>
             <input style={styles.input} type="email" name="peer_email" value={formData.peer_email} onChange={handleChange} placeholder="Peer's Email" />
 
             <label style={styles.label}>Your Program *</label>
