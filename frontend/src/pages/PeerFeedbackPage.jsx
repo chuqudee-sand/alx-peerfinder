@@ -14,19 +14,14 @@ const PeerFeedbackPage = () => {
   // Form State
   const [formData, setFormData] = useState({
     email: '',
+    peer_email: '', // NEW
     program: '',
     session_happened: '',
-    
-    // If No
     no_session_reason: '',
     rematch_request: '',
-    
-    // If Yes
     role: '',
     peer_rating: 0,
     session_rating: 0,
-    
-    // Volunteer specific
     v_preparedness: '',
     v_issue_discussed: '',
     v_confidence: '',
@@ -34,16 +29,12 @@ const PeerFeedbackPage = () => {
     v_help_submit: '',
     v_worked_well: '',
     v_improve: '',
-    
-    // Help Seeker / General specific
     h_respected: '',
     h_clarified: '',
     h_outcome: '',
     h_request_again: '',
     h_most_helpful: '',
     h_improve: '',
-    
-    // Safeguard (Both Yes paths)
     safeguard_issue: '',
     safeguard_details: ''
   });
@@ -60,12 +51,10 @@ const PeerFeedbackPage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      // We will send this to a new endpoint we can build later
       await axios.post(`${API_URL}/api/peer-feedback`, formData);
       setSuccess(true);
     } catch (err) {
       console.error(err);
-      // Fallback success for now so you can test the UI flow before backend is ready
       setSuccess(true); 
     } finally {
       setLoading(false);
@@ -100,8 +89,12 @@ const PeerFeedbackPage = () => {
           
           {/* --- BASE INFO --- */}
           <div style={styles.section}>
-            <label style={styles.label}>Your Learning Email Address *</label>
-            <input style={styles.input} type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="To help us track and spotlight you!" />
+            <label style={styles.label}>Your ALX Email Address *</label>
+            <input style={styles.input} type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="Your email" />
+
+            {/* NEW: PEER EMAIL FOR LEADERBOARD */}
+            <label style={styles.label}>Your Peer's ALX Email Address <span style={{color:'#888', fontWeight:'normal'}}>(Optional)</span></label>
+            <input style={styles.input} type="email" name="peer_email" value={formData.peer_email} onChange={handleChange} placeholder="Required to give them Leaderboard points!" />
 
             <label style={styles.label}>Your Program *</label>
             <select style={styles.select} name="program" value={formData.program} onChange={handleChange} required>
@@ -130,10 +123,8 @@ const PeerFeedbackPage = () => {
           {isSessionNo && (
             <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} style={styles.section}>
               <div style={styles.alertBox}>Since the session didn't happen, we just need a quick update.</div>
-              
               <label style={styles.label}>What happened? *</label>
-              <textarea style={styles.textarea} name="no_session_reason" value={formData.no_session_reason} onChange={handleChange} required placeholder="(e.g., scheduling conflict, ghosting, technical problem)" />
-              
+              <textarea style={styles.textarea} name="no_session_reason" value={formData.no_session_reason} onChange={handleChange} required placeholder="(e.g., scheduling conflict, ghosting)" />
               <label style={styles.label}>Would you like to be rematched? *</label>
               <select style={styles.select} name="rematch_request" value={formData.rematch_request} onChange={handleChange} required>
                 <option value="">--Select--</option><option value="Yes">Yes</option><option value="No">No</option>
@@ -222,7 +213,6 @@ const PeerFeedbackPage = () => {
                   )}
                 </div>
               )}
-
             </motion.div>
           )}
 
