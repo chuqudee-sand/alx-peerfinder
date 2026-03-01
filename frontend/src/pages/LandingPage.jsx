@@ -59,7 +59,7 @@ const Leaderboard = () => {
   return (
     <div style={styles.leaderboardSection}>
       <h2 style={{color: colors.primary.berkeleyBlue, fontSize: '2.5rem', marginBottom: '10px'}}>🌟 Community Support Stars</h2>
-      <p style={{color: '#666', marginBottom: '40px', fontSize: '1.1rem'}}>Spotlighting the top learners helping their peers succeed!</p>
+      <p style={{color: '#666', marginBottom: '10px', fontSize: '1.1rem'}}>Spotlighting the top learners helping their peers succeed!</p>
       
       {/* THE PODIUM */}
       <div style={styles.podiumContainer}>
@@ -296,14 +296,17 @@ const OptionCard = ({ title, desc, color, textColor='white', onClick }) => (
 const styles = {
   container: { minHeight: '100vh', background: colors.primary.berkeleyBlue, fontFamily: fonts.main, position:'relative' },
   navbar: { display: 'flex', justifyContent: 'space-between', padding: '1rem 2rem', background: 'white', zIndex: 100, position:'relative' },
+  navLeft: { display: 'flex', alignItems: 'center' },
   logoText: { color: colors.primary.iris, fontWeight: '700', fontSize: '1.5rem' },
-  adminLink: { color: colors.primary.iris, textDecoration: 'none', fontWeight: '600' },
+  adminLink: { color: colors.primary.iris, textDecoration: 'none', fontWeight: '600', display: 'flex', alignItems: 'center' },
   heroSection: { minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position:'relative', overflow:'hidden' },
   slideshowContainer: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   slide: { position: 'absolute', width: '100%', height: '100%' },
   image: { width: '100%', height: '100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' },
   overlay: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,43,86,0.6)' },
   slideContentWrapper: { position: 'absolute', bottom: '15%', width: '100%', textAlign: 'center', color: 'white', zIndex: 2 },
+  slideTitle: { fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem' },
+  slideSubtext: { fontSize: '1.2rem' },
   heroForeground: { position: 'relative', zIndex: 10, display: 'flex', flexWrap:'wrap', justifyContent:'center', alignItems:'center', gap:'3rem', padding:'2rem', width:'100%', maxWidth:'1200px' },
   heroTextContainer: { flex: '1', minWidth: '300px', maxWidth: '550px', textAlign: 'left', color: 'white' },
   heroTitle: { fontSize: '3.5rem', fontWeight: '800', lineHeight: '1.1', marginBottom: '1rem' },
@@ -318,7 +321,7 @@ const styles = {
   modalGrid: { display: 'flex', flexDirection: 'column', gap: '15px' },
   optionBtn: { padding: '15px', borderRadius: '10px', border: '1px solid #ddd', background: '#f9f9f9', fontSize: '1.1rem', fontWeight: '600', color: colors.primary.berkeleyBlue, cursor: 'pointer' },
   optionCard: { padding: '15px', borderRadius: '10px', border: 'none', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
-  backLink: { background: 'none', border: 'none', color: '#666', cursor: 'pointer', marginBottom: '10px', fontSize: '0.9rem' },
+  backLink: { background: 'none', border: 'none', color: '#666', cursor: 'pointer', marginBottom: '10px', fontSize: '0.9rem', alignSelf: 'flex-start' },
   programBtn: { width: '140px', height: '140px', borderRadius: '15px', border: '1px solid #eee', background: 'white', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', color: colors.primary.berkeleyBlue, fontSize: '0.9rem', textAlign: 'center', padding: '10px' },
   infoSection: { padding: '4rem 2rem', background: '#d1dbf8', color: colors.primary.berkeleyBlue, textAlign: 'center' },
   infoTitle: { fontSize: '1.5rem', fontWeight: '700', marginBottom: '1rem' },
@@ -329,7 +332,8 @@ const styles = {
 
   // --- LEADERBOARD STYLES ---
   leaderboardSection: { padding: '4rem 2rem', background: 'white', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
-  podiumContainer: { display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '15px', height: '300px', marginBottom: '30px', maxWidth: '600px', width: '100%' },
+  // UPDATED: Added marginTop to create space between text and podiums
+  podiumContainer: { display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '15px', height: '300px', marginTop: '40px', marginBottom: '30px', maxWidth: '600px', width: '100%' },
   podiumBlockWrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, position: 'relative' },
   avatar: { fontSize: '3rem', marginBottom: '10px' },
   podiumName: { fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '5px', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' },
@@ -340,4 +344,5 @@ const styles = {
 };
 
 export default LandingPage;
+
 
