@@ -69,17 +69,17 @@ const Leaderboard = () => {
             <div style={styles.avatar}>🥈 🧑‍🎓</div>
             <div style={{...styles.podiumName, color: '#C0C0C0'}}>{second.name}</div>
             <div style={styles.podiumScore}>{second.score} pts</div>
-            <div style={{...styles.podiumPillar, height: '120px', background: 'linear-gradient(to top, #e0e0e0, #f8f9fa)'}}>2nd</div>
+            <div style={{...styles.podiumPillar, height: '90px', background: 'linear-gradient(to top, #e0e0e0, #f8f9fa)'}}>2nd</div>
           </motion.div>
         )}
         
         {/* 1st Place */}
         {first && (
           <motion.div initial={{ y: 50, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.5 }} style={{...styles.podiumBlockWrap, zIndex: 10}}>
-            <div style={{...styles.avatar, fontSize: '4rem'}}>🥇🦸‍♂️</div>
+            <div style={{...styles.avatar, fontSize: '4rem'}}>🥇 🦸‍♂️</div>
             <div style={{...styles.podiumName, color: '#FFD700'}}>{first.name}</div>
             <div style={styles.podiumScore}>{first.score} pts</div>
-            <div style={{...styles.podiumPillar, height: '160px', background: 'linear-gradient(to top, #ffeeba, #fff9e6)', border: '2px solid #FFD700'}}>1st</div>
+            <div style={{...styles.podiumPillar, height: '120px', background: 'linear-gradient(to top, #ffeeba, #fff9e6)', border: '2px solid #FFD700'}}>1st</div>
           </motion.div>
         )}
 
@@ -89,7 +89,7 @@ const Leaderboard = () => {
             <div style={styles.avatar}>🥉 👩‍💻</div>
             <div style={{...styles.podiumName, color: '#CD7F32'}}>{third.name}</div>
             <div style={styles.podiumScore}>{third.score} pts</div>
-            <div style={{...styles.podiumPillar, height: '90px', background: 'linear-gradient(to top, #f4e3d7, #fdf8f5)'}}>3rd</div>
+            <div style={{...styles.podiumPillar, height: '70px', background: 'linear-gradient(to top, #f4e3d7, #fdf8f5)'}}>3rd</div>
           </motion.div>
         )}
       </div>
@@ -344,6 +344,7 @@ const styles = {
 };
 
 export default LandingPage;
+
 
 
 
