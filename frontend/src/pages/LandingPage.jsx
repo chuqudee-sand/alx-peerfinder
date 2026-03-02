@@ -76,7 +76,7 @@ const Leaderboard = () => {
         {/* 1st Place */}
         {first && (
           <motion.div initial={{ y: 50, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.5 }} style={{...styles.podiumBlockWrap, zIndex: 10}}>
-            <div style={{...styles.avatar, fontSize: '2rem'}}>🥇 🦸‍♂️</div>
+            <div style={{...styles.avatar, fontSize: '3.5rem'}}>🥇 🦸‍♂️</div>
             <div style={{...styles.podiumName, color: '#FFD700'}}>{first.name}</div>
             <div style={styles.podiumScore}>{first.score} pts</div>
             <div style={{...styles.podiumPillar, height: '120px', background: 'linear-gradient(to top, #ffeeba, #fff9e6)', border: '2px solid #FFD700'}}>1st</div>
@@ -344,6 +344,7 @@ const styles = {
 };
 
 export default LandingPage;
+
 
 
 
