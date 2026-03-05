@@ -230,13 +230,14 @@ const AdminPage = () => {
             </div>
             <div style={styles.tableWrapper}>
               <table style={styles.table}>
-                <thead><tr><th>Select</th><th>Days</th><th>Name</th><th>Program</th><th>Cohort</th><th>Request</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Select</th><th>Days</th><th>Name</th><th>Country</th><th>Program</th><th>Cohort</th><th>Request</th><th>Actions</th></tr></thead>
                 <tbody>
                   {unpairedList.map(l => (
                     <tr key={l.id} style={selectedIds.includes(l.id) ? styles.trSelected : styles.tr}>
                       <td><input type="checkbox" checked={selectedIds.includes(l.id)} onChange={() => toggleSelection(l.id)} style={{cursor:'pointer'}} /></td>
                       <td><span style={styles.badge}>{getDaysSince(l.timestamp)}d</span></td>
                       <td><strong>{l.name}</strong><br/><span style={styles.subText}>{l.email}</span></td>
+                      <td>{l.country || '-'}</td>
                       <td>{l.program}</td><td>{l.cohort}</td>
                       <td>{l.connection_type} ({l.preferred_study_setup || 'Any'})</td>
                       <td><button style={styles.btnSmall} onClick={() => initiateRandomPair(l.id, l.name)}>Random 🎲</button></td>
@@ -417,3 +418,4 @@ styleSheet.innerText = `td, th { padding: 12px; text-align: left; } th { backgro
 document.head.appendChild(styleSheet);
 
 export default AdminPage;
+
