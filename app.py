@@ -671,24 +671,49 @@ def get_leaderboard():
     # Clean data
     df_feedback['peer_email'] = df_feedback['peer_email'].astype(str).str.strip().str.lower()
     df_feedback['peer_rating'] = pd.to_numeric(df_feedback['peer_rating'], errors='coerce').fillna(0)
+    df_feedback['session_rating'] = pd.to_numeric(df_feedback['session_rating'], errors='coerce').fillna(0)
     
-    valid_feedback = df_feedback[df_feedback['peer_email'] != '']
+    # --- THE MAGIC FILTER --- 
+    # ONLY rank based on feedback submitted by a "HelpSeeker" (meaning the peer was the Volunteer!)
+    valid_feedback = df_feedback[(df_feedback['peer_email'] != '') & (df_feedback['role'] == 'HelpSeeker')].copy()
     
-    # Group by peer_email and sum the star ratings!
-    leaders = valid_feedback.groupby('peer_email')['peer_rating'].sum().reset_index()
-    leaders = leaders.sort_values(by='peer_rating', ascending=False).head(10) # Top 10
+    # --- POINT CALCULATION LOGIC ---
+    def calculate_points(row):
+        score = row['peer_rating'] + row['session_rating'] # Up to 10 points (5 stars each)
+        
+        if str(row.get('h_respected')).strip().lower() == 'yes':
+            score += 5
+            
+        clarified = str(row.get('h_clarified')).strip().lower()
+        if clarified == 'yes':
+            score += 5
+        elif clarified == 'partially':
+            score += 2
+            
+        if str(row.get('h_outcome')).strip().lower() == 'submit the deliverable':
+            score += 5
+            
+        return score
+
+    if not valid_feedback.empty:
+        valid_feedback['points'] = valid_feedback.apply(calculate_points, axis=1)
+        # Group by the volunteer's email and sum their total points
+        leaders = valid_feedback.groupby('peer_email')['points'].sum().reset_index()
+        leaders = leaders.sort_values(by='points', ascending=False).head(10) # Top 10
+    else:
+        return jsonify({"success": True, "leaderboard": []})
     
+    # Map the emails back to real names
     leaderboard = []
     for _, row in leaders.iterrows():
         p_email = row['peer_email']
-        score = int(row['peer_rating'])
+        score = int(row['points'])
         
-        # Map email to name from the main database
         user_match = df_users[df_users['email'].str.lower() == p_email]
         if not user_match.empty:
             name = user_match.iloc[0]['name']
         else:
-            name = p_email.split('@')[0] # Fallback if name not found
+            name = p_email.split('@')[0] 
             
         leaderboard.append({"name": name, "score": score})
         
@@ -697,4 +722,5 @@ def get_leaderboard():
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host='0.0.0.0')
+
 
