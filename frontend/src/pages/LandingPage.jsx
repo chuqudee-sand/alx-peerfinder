@@ -122,8 +122,8 @@ const LandingPage = () => {
   const [selectedCohort, setSelectedCohort] = useState(null);
 
   const programs = [
-    { id: 'VA', name: 'Virtual Assistant', icon: '💻', cohorts: ['Cohort 14'] },
-    { id: 'AiCE', name: 'AI Career Essentials', icon: '🤖', cohorts: ['Cohort 17'] },
+    { id: 'VA', name: 'Virtual Assistant', icon: '💻', cohorts: ['Cohort 14', 'Cohort 15'] },
+    { id: 'AiCE', name: 'AI Career Essentials', icon: '🤖', cohorts: ['Cohort 17', 'Cohort 18'] },
     { id: 'PF', name: 'Prof. Foundations', icon: '🚀', cohorts: ['Cohort 12'] },
   ];
 
@@ -148,8 +148,8 @@ const LandingPage = () => {
   };
 
   const isRestrictedCohort = () => {
-    if (selectedProgram?.id === 'VA' && selectedCohort === 'Cohort 14') return true;
-    if (selectedProgram?.id === 'AiCE' && selectedCohort === 'Cohort 18') return true;
+    if (selectedProgram?.id === 'VA' && selectedCohort === 'Cohort 15') return true;
+    if (selectedProgram?.id === 'AiCE' && selectedCohort === 'Cohort 19') return true;
     return false;
   };
 
@@ -344,6 +344,7 @@ const styles = {
 };
 
 export default LandingPage;
+
 
 
 
