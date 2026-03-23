@@ -43,21 +43,19 @@ s3 = boto3.client(
 )
 
 # === FILE NAMES ===
-CSV_OBJECT_KEY = 'peer_matching_data_v2.csv' 
-FEEDBACK_OBJECT_KEY = 'peer_finder_feedback.csv'
-SESSION_FEEDBACK_OBJECT_KEY = 'peer_session_feedback.csv'
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
+CSV_OBJECT_KEY = 'ca_peerfinder_data.csv' 
+FEEDBACK_OBJECT_KEY = 'ca_feedback.csv'
+SESSION_FEEDBACK_OBJECT_KEY = 'ca_session_feedback.csv'
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 
 # === PROGRAM CREDENTIALS ===
 def load_google_token(env_var_name):
     token_str = os.environ.get(env_var_name)
     if not token_str:
-        logger.error(f"Missing environment variable: {env_var_name}")
         return None
     try:
         return json.loads(token_str)
     except json.JSONDecodeError as e:
-        logger.error(f"Failed to decode JSON for {env_var_name}: {e}")
         return None
 
 PROGRAM_CREDENTIALS = {
@@ -98,13 +96,10 @@ def api_wrapper(f):
         try:
             return f(*args, **kwargs)
         except ClientError as e:
-            logger.error(f"AWS S3 Error: {e}")
             return jsonify({"success": False, "error": "Database connection failed (S3)"}), 503
         except pd.errors.EmptyDataError:
-            logger.error("Pandas Empty Data Error")
             return jsonify({"success": False, "error": "Data file is empty or corrupted"}), 500
         except Exception as e:
-            logger.error(f"Unexpected Error in {f.__name__}: {e}")
             return jsonify({"success": False, "error": f"Server Error: {str(e)}"}), 500
     wrapper.__name__ = f.__name__
     return wrapper
@@ -121,7 +116,6 @@ def get_gmail_service(program_name):
                 creds.refresh(Request())
         return build('gmail', 'v1', credentials=creds), config['email']
     except Exception as e:
-        logger.error(f"Auth Error for {program_name}: {e}")
         return None, None
 
 def send_email(to, subject, body, program_name, is_html=True):
@@ -134,7 +128,6 @@ def send_email(to, subject, body, program_name, is_html=True):
         message['from'] = sender_email
         message['subject'] = subject
         
-        # Wrapped in a nice HTML structure
         html_body = f"""
         <html><body style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 20px;">
         <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
@@ -153,33 +146,35 @@ def send_email(to, subject, body, program_name, is_html=True):
         service.users().messages().send(userId='me', body={'raw': raw}).execute()
         return True
     except Exception as e:
-        logger.error(f"Email Error: {str(e)}")
         return False
 
-# NEW: Helper function to generate and send group match emails with WhatsApp links
 def notify_group_match(df, group_id):
     grp = df[df['group_id'] == group_id]
+    video_link = f"https://meet.jit.si/ALX-PeerFinder-{group_id}"
     
     for _, current_user in grp.iterrows():
         peer_info_html = ""
         
         for _, peer in grp.iterrows():
             if peer['id'] != current_user['id']:
-                # Clean phone number for WhatsApp link (remove spaces, +, and dashes)
                 clean_phone = re.sub(r'\D', '', str(peer['phone']))
                 wa_link = f"https://wa.me/{clean_phone}"
+                telegram_link = f"https://t.me/+{clean_phone}"
                 
                 support = str(peer.get('kind_of_support', '')).strip()
                 if not support or support.lower() == 'nan': 
                     support = "Study Buddy / Accountability"
+                meet_pref = str(peer.get('meeting_preference', 'All'))
                     
                 peer_info_html += f"""
                 <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e0e0e0;">
                     <strong style="font-size: 18px; color: #091F40;">{peer['name']}</strong><br/>
                     <span style="color: #555;">📧 {peer['email']}</span><br/>
                     <span style="color: #555;">🎯 Role: {support}</span><br/>
-                    <div style="margin-top: 15px;">
-                        <a href="{wa_link}" style="background-color: #25D366; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">💬 Message on WhatsApp</a>
+                    <span style="color: #555;">📌 Prefers to meet via: <strong>{meet_pref}</strong></span><br/>
+                    <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <a href="{wa_link}" style="background-color: #25D366; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px;">WhatsApp</a>
+                        <a href="{telegram_link}" style="background-color: #0088cc; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px;">Telegram</a>
                     </div>
                 </div>
                 """
@@ -190,28 +185,28 @@ def notify_group_match(df, group_id):
         You have been successfully matched! Here is the information for your peer(s):<br/><br/>
         {peer_info_html}
         <br/>
-        Kindly reach out to your peer(s) to introduce yourself, collaborate, and offer support!👍<br/><br/>
-        
+        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #b8daff; text-align: center;">
+            <h3 style="margin-top: 0; color: #0056b3;">🎥 Your Dedicated Group Video Room</h3>
+            <p style="margin-bottom: 10px; color: #004085;">We have generated a free, instant video meeting room for your group. No account required!</p>
+            <a href="{video_link}" style="background-color: #0056b3; color: white; padding: 12px 25px; text-decoration: none; border-radius: 30px; font-weight: bold; display: inline-block;">Join Video Call Now</a>
+        </div>
+        <br/><br/>
         <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba; font-size: 14px;">
             <strong style="color: #856404; font-size: 16px;">⚠️ Please Read Carefully</strong><br/><br/>
-            We want this to be a positive and supportive experience for everyone. To help make that happen:<br/>
             <ul style="margin-bottom: 0; padding-left: 20px; color: #856404;">
                 <li>Please show up for your partner or group — ghosting is discouraged and can affect their progress.</li>
                 <li>Only fill this form with accurate details. If you've entered incorrect information, kindly unpair yourself.</li>
-                <li>If you've completed all your modules, consider supporting others who are catching up — your help can make a real difference.🤗</li>
                 <li>If you no longer wish to participate, let your partner/group know first before unpairing.</li>
-                <li>If you'd like to be paired with someone new, you'll need to register again.</li>
             </ul>
         </div>
         <br/>
-        Thank you for helping create a respectful and encouraging learning community.<br/><br/>
         Best regards,<br/>
         <strong>Peer Finder Team</strong>
         """
         try:
             send_email(current_user['email'], "You've been matched! 🎉", body, current_user['program'], is_html=True)
         except Exception as e:
-            logger.error(f"Failed to send match email to {current_user['email']}: {e}")
+            pass
 
 # === DATA HANDLING ===
 REQUIRED_COLUMNS = [
@@ -219,7 +214,8 @@ REQUIRED_COLUMNS = [
     'topic_module', 'learning_preferences', 'availability', 
     'preferred_study_setup', 'kind_of_support', 'connection_type',
     'open_to_global_pairing', 'timestamp', 'matched', 'group_id', 
-    'unpair_reason', 'matched_timestamp', 'match_attempted'
+    'unpair_reason', 'matched_timestamp', 'match_attempted',
+    'volunteer_capacity', 'meeting_preference', 'timezone'
 ]
 
 def clean_boolean(val):
@@ -236,15 +232,19 @@ def download_csv(key=CSV_OBJECT_KEY):
                 if col not in df.columns:
                     df[col] = False if col in ['matched', 'match_attempted'] else ''
             
+            # The Float Bug Fix + Timezone addition
             str_cols = ['id', 'name', 'phone', 'email', 'country', 'program', 'cohort', 
                        'topic_module', 'availability', 'connection_type', 'group_id', 
                        'open_to_global_pairing', 'preferred_study_setup', 'kind_of_support', 
-                       'learning_preferences', 'unpair_reason']
+                       'learning_preferences', 'unpair_reason', 'timestamp', 'matched_timestamp',
+                       'timezone', 'meeting_preference', 'volunteer_capacity']
             
             for c in str_cols: 
-                if c in df.columns: df[c] = df[c].astype(str).str.strip().replace('nan', '')
+                if c in df.columns: 
+                    df[c] = df[c].astype(str).str.replace(r'\.0$', '', regex=True).str.replace(r'\s+', ' ', regex=True).str.strip().replace('nan', '')
             
             if 'matched' in df.columns: df['matched'] = df['matched'].apply(clean_boolean)
+            if 'match_attempted' in df.columns: df['match_attempted'] = df['match_attempted'].apply(clean_boolean)
             if 'email' in df.columns: df['email'] = df['email'].str.lower()
             
         return df
@@ -256,24 +256,29 @@ def upload_csv(df, key=CSV_OBJECT_KEY):
     df.to_csv(csv_buffer, index=False)
     s3.put_object(Bucket=AWS_S3_BUCKET, Key=key, Body=csv_buffer.getvalue(), ContentType='text/csv')
 
+def normalize_str(val):
+    if pd.isna(val) or val is None: return ""
+    return re.sub(r'\s+', ' ', str(val)).strip().lower()
+
 def availability_match(a1, a2):
-    return (a1 == 'Flexible' or a2 == 'Flexible' or a1 == a2) if (pd.notna(a1) and pd.notna(a2)) else False
+    a1_clean = normalize_str(a1)
+    a2_clean = normalize_str(a2)
+    if not a1_clean or not a2_clean: return False
+    return (a1_clean == 'flexible' or a2_clean == 'flexible' or a1_clean == a2_clean)
 
 # === ROUTES ===
 
 @app.route('/', methods=['GET'])
 @api_wrapper
 def health():
-    return jsonify({"status": "active", "version": "6.0-Validated"})
+    return jsonify({"status": "active", "version": "CA_Modular_Upgraded"})
 
 @app.route('/api/register', methods=['POST'])
 @api_wrapper
 def register():
     data = request.get_json()
-    
     errors = validate_registration(data)
-    if errors:
-        return jsonify({"success": False, "error": "; ".join(errors)}), 400
+    if errors: return jsonify({"success": False, "error": "; ".join(errors)}), 400
     
     email = data['email'].strip().lower()
     phone = data['phone'].strip()
@@ -287,12 +292,7 @@ def register():
         existing = df.loc[idx]
         
         if bool(existing['matched']):
-            return jsonify({
-                "success": False, 
-                "is_duplicate": True, 
-                "user_id": str(existing['id']), 
-                "already_matched": True
-            })
+            return jsonify({"success": False, "is_duplicate": True, "user_id": str(existing['id']), "already_matched": True})
         else:
             df.at[idx, 'name'] = data['name']
             df.at[idx, 'program'] = data['program']
@@ -307,6 +307,9 @@ def register():
             df.at[idx, 'connection_type'] = data['connection_type']
             df.at[idx, 'open_to_global_pairing'] = data.get('open_to_global_pairing', 'No')
             df.at[idx, 'match_attempted'] = False 
+            df.at[idx, 'volunteer_capacity'] = data.get('volunteer_capacity', '3')
+            df.at[idx, 'meeting_preference'] = data.get('meeting_preference', 'All')
+            df.at[idx, 'timezone'] = data.get('timezone', '')
             upload_csv(df)
             return jsonify({"success": True, "user_id": str(existing['id'])})
 
@@ -324,13 +327,15 @@ def register():
         'open_to_global_pairing': data.get('open_to_global_pairing', 'No'),
         'timestamp': datetime.now(timezone.utc).isoformat(),
         'matched': False, 'group_id': '', 'unpair_reason': '',
-        'matched_timestamp': '', 'match_attempted': False
+        'matched_timestamp': '', 'match_attempted': False,
+        'volunteer_capacity': data.get('volunteer_capacity', '3'),
+        'meeting_preference': data.get('meeting_preference', 'All'),
+        'timezone': data.get('timezone', '')
     }
     
     df = pd.concat([df, pd.DataFrame([new_user])], ignore_index=True)
     upload_csv(df)
     
-    # NEW FORMATTED WAITING EMAIL
     wait_body = f"""
     <h2 style="color: #091F40; margin-top: 0;">You're in Queue! ⏳</h2>
     Hi <strong>{data['name']}</strong>,<br/><br/>
@@ -344,21 +349,15 @@ def register():
     <strong>Peer Finder Team</strong>
     """
     send_email(email, "PeerFinder - Waiting to Be Matched ⏳", wait_body, data['program'], is_html=True)
-    
     return jsonify({"success": True, "user_id": new_id})
-
 
 @app.route('/api/status/<identifier>', methods=['GET'])
 @api_wrapper
 def status(identifier):
     df = download_csv()
     ident_lower = identifier.strip().lower()
-    
-    # UPDATE: Sort by timestamp so email login grabs the most recent profile
     user_rows = df[(df['id'] == identifier.strip()) | (df['email'].str.lower() == ident_lower)].sort_values(by='timestamp', ascending=False)
-    
-    if user_rows.empty: 
-        return jsonify({"error": "Not found"}), 404
+    if user_rows.empty: return jsonify({"error": "Not found"}), 404
         
     u = user_rows.iloc[0]
     res = {
@@ -369,10 +368,9 @@ def status(identifier):
     
     if bool(u['matched']) and u['group_id']:
         grp = df[df['group_id'] == u['group_id']]
-        res['group'] = grp[['name', 'email', 'phone', 'connection_type']].fillna("").to_dict('records')
+        res['group'] = grp[['name', 'email', 'phone', 'connection_type', 'meeting_preference']].fillna("").to_dict('records')
         
     return jsonify(res)
-
 
 @app.route('/api/match', methods=['POST'])
 @api_wrapper
@@ -386,7 +384,9 @@ def match():
     
     idx = user_rows.index[0]
     user = user_rows.iloc[0]
+    
     df.at[idx, 'match_attempted'] = True
+    upload_csv(df)
     
     if bool(user['matched']): return jsonify({'matched': True})
     
@@ -394,30 +394,36 @@ def match():
     gid = f"group-{uuid.uuid4()}"
     iso = datetime.now(timezone.utc).isoformat()
     
+    u_program = normalize_str(user['program'])
+    u_cohort = normalize_str(user['cohort'])
+    u_country = normalize_str(user['country'])
+    u_module = normalize_str(user['topic_module'])
+    u_avail = normalize_str(user['availability'])
+
     program_pool = df[
         (df['matched'] == False) & 
-        (df['program'] == user['program']) & 
+        (df['program'].apply(normalize_str) == u_program) & 
         (df['id'] != user_id)
     ]
 
     if user['connection_type'] == 'find':
-        size = str(user['preferred_study_setup']) if user['preferred_study_setup'] else '2'
+        size = str(user['preferred_study_setup']).replace('.0', '').strip() if pd.notna(user['preferred_study_setup']) and user['preferred_study_setup'] else '2'
         base_pool = program_pool[
             (program_pool['connection_type'] == 'find') &
-            (program_pool['preferred_study_setup'] == size)
+            (program_pool['preferred_study_setup'].astype(str).str.replace('.0', '', regex=False).str.strip() == size)
         ]
 
         if str(user.get('open_to_global_pairing', '')).strip().upper() == 'YES':
             pool = base_pool[
-                (base_pool['cohort'] == user['cohort']) &
-                ((base_pool['country'] == user['country']) | (base_pool['open_to_global_pairing'].str.strip().str.upper() == 'YES'))
+                (base_pool['cohort'].apply(normalize_str) == u_cohort) &
+                ((base_pool['country'].apply(normalize_str) == u_country) | (base_pool['open_to_global_pairing'].astype(str).str.strip().str.upper() == 'YES'))
             ].copy()
         else:
             pool = base_pool[
-                (base_pool['cohort'] == user['cohort']) &
-                (base_pool['country'] == user['country']) &
-                (base_pool['topic_module'] == user['topic_module']) & 
-                (base_pool['availability'].apply(lambda x: availability_match(str(x), str(user['availability']))))
+                (base_pool['cohort'].apply(normalize_str) == u_cohort) &
+                (base_pool['country'].apply(normalize_str) == u_country) &
+                (base_pool['topic_module'].apply(normalize_str) == u_module) & 
+                (base_pool['availability'].apply(lambda x: availability_match(str(x), u_avail)))
             ].copy()
         
         if len(pool) >= (int(size) - 1):
@@ -428,22 +434,26 @@ def match():
             df.loc[all_idx, 'unpair_reason'] = '' 
             updated = True
             
-    elif user['connection_type'] in ['offer', 'need']:
-        target = 'need' if user['connection_type'] == 'offer' else 'offer'
-        base_pool = program_pool[program_pool['connection_type'] == target]
+    elif user['connection_type'] == 'offer':
+        # NEW VOLUNTEER LOGIC: Global match strictly on program & cohort, grab up to capacity
+        capacity = int(float(user.get('volunteer_capacity', 3))) if pd.notna(user.get('volunteer_capacity')) and user.get('volunteer_capacity') != '' else 3
+        pool = program_pool[
+            (program_pool['connection_type'] == 'need') &
+            (program_pool['cohort'].apply(normalize_str) == u_cohort)
+        ].copy()
         
-        if str(user.get('open_to_global_pairing', '')).strip().upper() == 'YES':
-            pool = base_pool[
-                (base_pool['cohort'] == user['cohort']) &
-                ((base_pool['country'] == user['country']) | (base_pool['open_to_global_pairing'].str.strip().str.upper() == 'YES'))
-            ].copy()
-        else:
-            pool = base_pool[
-                (base_pool['cohort'] == user['cohort']) &
-                (base_pool['country'] == user['country']) &
-                (base_pool['topic_module'] == user['topic_module']) &
-                (base_pool['availability'].apply(lambda x: availability_match(str(x), str(user['availability']))))
-            ].copy()
+        if not pool.empty:
+            matched_peers = pool.head(capacity)
+            all_idx = [idx] + matched_peers.index.tolist()
+            df.loc[all_idx, 'matched'] = True
+            df.loc[all_idx, 'group_id'] = gid
+            df.loc[all_idx, 'matched_timestamp'] = iso
+            df.loc[all_idx, 'unpair_reason'] = ''
+            updated = True
+            
+    elif user['connection_type'] == 'need':
+        pool = program_pool[program_pool['connection_type'] == 'offer']
+        pool = pool[(pool['cohort'].apply(normalize_str) == u_cohort)].copy()
         
         if not pool.empty:
             pidx = pool.index[0]
@@ -455,10 +465,9 @@ def match():
 
     if updated:
         upload_csv(df)
-        notify_group_match(df, gid) # Send new dynamic emails!
+        notify_group_match(df, gid)
         return jsonify({'matched': True, 'group_id': gid})
     
-    upload_csv(df)
     return jsonify({'matched': False})
 
 
@@ -467,7 +476,7 @@ def match():
 def leave_group(user_id=None):
     data = request.get_json() or {}
     target_id = user_id or data.get('user_id')
-    delete_profile = data.get('delete_profile', False) # NEW: Check if they want to be deleted
+    delete_profile = data.get('delete_profile', False)
     
     df = download_csv()
     user_rows = df[df['id'] == target_id]
@@ -476,12 +485,10 @@ def leave_group(user_id=None):
     idx = user_rows.index[0]
     old_group_id = df.at[idx, 'group_id'] 
     
-    # 1. Unpair the user
     df.at[idx, 'matched'] = False
     df.at[idx, 'group_id'] = ''
     df.at[idx, 'unpair_reason'] = data.get('reason', 'User Requested')
     
-    # 2. Ghost Group Logic (Put the remaining partner back in queue)
     if old_group_id:
         remaining_members = df[df['group_id'] == old_group_id]
         if len(remaining_members) == 1:
@@ -489,7 +496,6 @@ def leave_group(user_id=None):
             df.at[rem_idx, 'matched'] = False
             df.at[rem_idx, 'group_id'] = ''
             
-    # 3. NEW: If they chose "Completely delete me", drop their row entirely
     if delete_profile:
         df = df.drop(index=idx)
         
@@ -542,13 +548,13 @@ def random_pair():
     if bool(t_row.iloc[0]['matched']): return jsonify({"error": "Already matched"}), 400
     
     user = t_row.iloc[0]
-    size = str(user['preferred_study_setup']) if user['preferred_study_setup'] else '2'
+    size = str(user['preferred_study_setup']).replace('.0', '').strip() if pd.notna(user['preferred_study_setup']) and user['preferred_study_setup'] else '2'
     
     pool = df[
         (df['matched'] == False) & 
         (df['id'] != tid) &
-        (df['program'] == user['program']) &
-        (df['preferred_study_setup'] == size)
+        (df['program'].apply(normalize_str) == normalize_str(user['program'])) &
+        (df['preferred_study_setup'].astype(str).str.replace('.0', '', regex=False).str.strip() == size)
     ]
     
     needed = int(size) - 1
@@ -564,8 +570,7 @@ def random_pair():
     df.loc[idx_list, 'matched_timestamp'] = iso
     upload_csv(df)
     
-    notify_group_match(df, gid) # Send new dynamic emails
-        
+    notify_group_match(df, gid)
     return jsonify({"success": True, "message": "Matched!"})
 
 @app.route('/api/admin/manual-pair', methods=['POST'])
@@ -590,8 +595,7 @@ def manual_pair():
     df.loc[rows.index, 'matched_timestamp'] = iso
     upload_csv(df)
     
-    notify_group_match(df, gid) # Send new dynamic emails
-        
+    notify_group_match(df, gid)
     return jsonify({"success": True, "message": "Paired!"})
 
 @app.route('/api/admin/download', methods=['POST'])
@@ -621,7 +625,7 @@ def submit_peer_session_feedback():
         'id': str(uuid.uuid4()),
         'timestamp': datetime.now(timezone.utc).isoformat(),
         'email': data.get('email', ''),
-        'peer_email': data.get('peer_email', ''), # <--- ADD THIS LINE
+        'peer_email': data.get('peer_email', ''),
         'program': data.get('program', ''),
         'session_happened': data.get('session_happened', ''),
         'no_session_reason': data.get('no_session_reason', ''),
@@ -648,7 +652,6 @@ def submit_peer_session_feedback():
     
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     upload_csv(df, SESSION_FEEDBACK_OBJECT_KEY)
-    
     return jsonify({"success": True})
 
 @app.route('/api/admin/download-session-feedback', methods=['POST'])
@@ -657,7 +660,6 @@ def dl_session_feedback():
     if request.get_json().get('password') != ADMIN_PASSWORD: 
         return jsonify({"error": "Unauthorized"}), 401
     return Response(download_csv(SESSION_FEEDBACK_OBJECT_KEY).to_csv(index=False), mimetype='text/csv')
-
 
 @app.route('/api/leaderboard', methods=['GET'])
 @api_wrapper
@@ -668,42 +670,32 @@ def get_leaderboard():
         
     df_users = download_csv(CSV_OBJECT_KEY)
     
-    # Clean data
     df_feedback['peer_email'] = df_feedback['peer_email'].astype(str).str.strip().str.lower()
     df_feedback['peer_rating'] = pd.to_numeric(df_feedback['peer_rating'], errors='coerce').fillna(0)
     df_feedback['session_rating'] = pd.to_numeric(df_feedback['session_rating'], errors='coerce').fillna(0)
     
-    # --- THE MAGIC FILTER --- 
-    # ONLY rank based on feedback submitted by a "HelpSeeker" (meaning the peer was the Volunteer!)
     valid_feedback = df_feedback[(df_feedback['peer_email'] != '') & (df_feedback['role'] == 'HelpSeeker')].copy()
     
-    # --- POINT CALCULATION LOGIC ---
     def calculate_points(row):
-        score = row['peer_rating'] + row['session_rating'] # Up to 10 points (5 stars each)
-        
+        score = row['peer_rating'] + row['session_rating']
         if str(row.get('h_respected')).strip().lower() == 'yes':
             score += 5
-            
         clarified = str(row.get('h_clarified')).strip().lower()
         if clarified == 'yes':
             score += 5
         elif clarified == 'partially':
             score += 2
-            
         if str(row.get('h_outcome')).strip().lower() == 'submit the deliverable':
             score += 5
-            
         return score
 
     if not valid_feedback.empty:
         valid_feedback['points'] = valid_feedback.apply(calculate_points, axis=1)
-        # Group by the volunteer's email and sum their total points
         leaders = valid_feedback.groupby('peer_email')['points'].sum().reset_index()
-        leaders = leaders.sort_values(by='points', ascending=False).head(10) # Top 10
+        leaders = leaders.sort_values(by='points', ascending=False).head(10)
     else:
         return jsonify({"success": True, "leaderboard": []})
     
-    # Map the emails back to real names
     leaderboard = []
     for _, row in leaders.iterrows():
         p_email = row['peer_email']
@@ -722,5 +714,3 @@ def get_leaderboard():
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host='0.0.0.0')
-
-
