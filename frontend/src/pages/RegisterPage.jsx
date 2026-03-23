@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { colors, fonts } from '../theme';
@@ -19,10 +19,20 @@ const africanCountries = [
   "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe", "Non-African"
 ];
 
+// --- TIME ZONE MAPPING ---
 const countryToTimezone = {
-  "Nigeria": "UTC+1", "Kenya": "UTC+3", "South Africa": "UTC+2", "Ghana": "UTC", "Rwanda": "UTC+2", "Egypt": "UTC+2"
+  "Algeria": "UTC+1", "Angola": "UTC+1", "Benin": "UTC+1", "Botswana": "UTC+2", "Burkina Faso": "UTC", "Burundi": "UTC+2", "Cabo Verde": "UTC-1",
+  "Cameroon": "UTC+1", "Central African Republic": "UTC+1", "Chad": "UTC+1", "Comoros": "UTC+3", "Congo (Brazzaville)": "UTC+1",
+  "Congo (Kinshasa)": "UTC+1", "Côte d'Ivoire": "UTC", "Djibouti": "UTC+3", "Egypt": "UTC+2", "Equatorial Guinea": "UTC+1",
+  "Eritrea": "UTC+3", "Eswatini": "UTC+2", "Ethiopia": "UTC+3", "Gabon": "UTC+1", "Gambia": "UTC", "Ghana": "UTC", "Guinea": "UTC",
+  "Guinea-Bissau": "UTC", "Kenya": "UTC+3", "Lesotho": "UTC+2", "Liberia": "UTC", "Libya": "UTC+2", "Madagascar": "UTC+3", "Malawi": "UTC+2",
+  "Mali": "UTC", "Mauritania": "UTC", "Mauritius": "UTC+4", "Morocco": "UTC+1", "Mozambique": "UTC+2", "Namibia": "UTC+2", "Niger": "UTC+1",
+  "Nigeria": "UTC+1", "Rwanda": "UTC+2", "Sao Tome and Principe": "UTC", "Senegal": "UTC", "Seychelles": "UTC+4",
+  "Sierra Leone": "UTC", "Somalia": "UTC+3", "South Africa": "UTC+2", "South Sudan": "UTC+2", "Sudan": "UTC+2", "Tanzania": "UTC+3",
+  "Togo": "UTC", "Tunisia": "UTC+1", "Uganda": "UTC+3", "Zambia": "UTC+2", "Zimbabwe": "UTC+2"
 };
 
+// --- HELPER: GENERATE UTC OFFSETS FOR NON-AFRICAN (-12 to +14) ---
 const utcOffsets = Array.from({ length: 27 }, (_, i) => {
     const offset = i - 12;
     return offset >= 0 ? `+${offset}` : `${offset}`;
@@ -37,23 +47,39 @@ const RegisterPage = () => {
   const cohort = location.state?.cohort || 'Cohort 17';
   const connectionType = location.state?.connectionType || 'find';
 
+  // --- SPECIAL CONDITION: AiCE Cohort 17 ---
+  const isAiCEC17 = program === 'AiCE' && cohort === 'Cohort 17';
+
   const [formData, setFormData] = useState({
     name: '', email: '', phone: '', country: '', timezone: '', language: '',
     open_to_global_pairing: connectionType === 'offer' ? 'Yes' : 'No', 
-    topic_module: '', learning_preferences: '', availability: '', 
-    preferred_study_setup: '2', kind_of_support: '', 
-    volunteer_capacity: '3',
-    meeting_preference: 'All',
-    disclaimer_agree: false
+    topic_module: '', 
+    learning_preferences: '', availability: '', preferred_study_setup: '2', 
+    kind_of_support: '', disclaimer_agree: false,
+    volunteer_capacity: '3', // NEW
+    meeting_preference: 'All' // NEW
   });
+
+  // Force specific values for AiCE Cohort 17
+  useEffect(() => {
+    if (isAiCEC17) {
+        setFormData(prev => ({
+            ...prev,
+            topic_module: "All Modules",
+            learning_preferences: "Dedicated Accountability Partner",
+            preferred_study_setup: "2"
+        }));
+    }
+  }, [isAiCEC17]);
 
   const handleChange = (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     const name = e.target.name;
 
+    // Auto-fill timezone when country changes
     if (name === 'country') {
         if (value === 'Non-African') {
-            setFormData({ ...formData, country: value, timezone: '' });
+            setFormData({ ...formData, country: value, timezone: '' }); // Clear it so they can pick
         } else {
             const tz = countryToTimezone[value] || '';
             setFormData({ ...formData, country: value, timezone: tz });
@@ -64,7 +90,10 @@ const RegisterPage = () => {
   };
 
   const getModules = () => {
-    return Array.from({length: 12}, (_, i) => `Week ${i+1} Challenge/Project`);
+    if (isAiCEC17) return ["All Modules"];
+    if (program === 'VA') return ["Week 1: Recap Quiz/Milestone", "Week 2: Recap Quiz/Milestone", "Week 3: Recap Quiz/Milestone", "Week 4: Recap Quiz/Milestone", "Week 5: Recap Quiz/Milestone", "Week 6: Recap Quiz/Milestone", "Week 7: Recap Quiz/Milestone", "Week 8: Recap Quiz/Milestone"];
+    if (program === 'AiCE') return ["Module 1: Stepping into the world of AI", "Module 2: Getting smart about AI", "Module 3: Using AI in the right way", "Module 4: Becoming more creative at work", "Module 5: Becoming a superhero at work", "Module 6: Empower your future"];
+    return Array.from({length: 12}, (_, i) => `Week ${i+1} Test/Milestone`);
   };
 
   const handleSubmit = async (e) => {
@@ -72,6 +101,7 @@ const RegisterPage = () => {
     setLoading(true);
     const payload = { ...formData, program, cohort, connection_type: connectionType };
     
+    // Force global pairing for volunteers behind the scenes
     if (connectionType === 'offer') payload.open_to_global_pairing = 'Yes';
 
     try {
@@ -88,7 +118,19 @@ const RegisterPage = () => {
       <button style={styles.backBtn} onClick={() => navigate('/')}>&larr; Back</button>
       <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} style={styles.card}>
         <h2 style={styles.header}>Register for {program} ({cohort})</h2>
-        <p style={{textAlign:'center', marginBottom:'15px', color: '#666'}}>Looking to: <strong>{connectionType === 'find' ? 'Find a Study Buddy' : connectionType === 'offer' ? 'Offer Support (Volunteer)' : 'Request Support'}</strong></p>
+        <p style={{textAlign:'center', marginBottom:'15px', color: '#666'}}>Looking for: <strong>{connectionType === 'find' ? 'Study Buddy' : connectionType === 'offer' ? 'Offer Support (Volunteer)' : 'Request Support'}</strong></p>
+
+        {/* --- WARNING BOX --- */}
+        <div style={styles.warningBox}>
+          <h3 style={styles.warningTitle}>⚠️ Please Read Carefully</h3>
+          <ul style={styles.warningList}>
+            <li>Show up for your partner — ghosting is discouraged.</li>
+            <li>Provide accurate info only.</li>
+            <li>Feel free to opt out at any time.</li>
+            <li>Peer support is labelled as informal.</li>
+             <li>Volunteers are here to support, not replace official facilitators/instructors.</li>
+          </ul>
+        </div>
 
         <form onSubmit={handleSubmit} style={styles.form}>
            <div style={styles.row}>
@@ -96,6 +138,7 @@ const RegisterPage = () => {
              <div style={styles.half}><label style={styles.label}>Email (ALX Registered)</label><input style={styles.input} name="email" type="email" onChange={handleChange} required /></div>
            </div>
            
+           {/* UPDATED LABEL */}
            <label style={styles.label}>Phone Number (WhatsApp/Telegram)</label>
            <input style={styles.input} name="phone" type="tel" placeholder="+123..." onChange={handleChange} required />
 
@@ -111,25 +154,43 @@ const RegisterPage = () => {
               </div>
               <div style={styles.half}>
                   <label style={styles.label}>Time Zone</label>
+                  {/* NEW SMART TIMEZONE INPUT */}
                   {formData.country === 'Non-African' ? (
                       <div style={styles.tzWrapper}>
                           <span style={{ fontWeight: 'bold', color: '#555' }}>UTC</span>
-                          <select style={styles.tzSelect} name="timezone" onChange={handleChange} required value={formData.timezone}>
+                          <select 
+                              style={styles.tzSelect} 
+                              name="timezone" 
+                              onChange={handleChange} 
+                              required 
+                              value={formData.timezone}
+                          >
                               <option value="">--</option>
                               {utcOffsets.map(off => <option key={off} value={`UTC${off}`}>{off}</option>)}
                           </select>
                       </div>
                   ) : (
-                      <input style={{...styles.input, backgroundColor: '#f5f5f5', color: '#888', cursor: 'not-allowed'}} name="timezone" value={formData.timezone} readOnly placeholder="Auto-filled by country" required />
+                      <input 
+                          style={{...styles.input, backgroundColor: '#f5f5f5', color: '#888', cursor: 'not-allowed'}} 
+                          name="timezone" 
+                          value={formData.timezone} 
+                          readOnly 
+                          placeholder="Auto-filled by country" 
+                          required 
+                      />
                   )}
               </div>
            </div>
-
+           
            <div style={styles.row}>
              <div style={styles.half}>
                   <label style={styles.label}>Language</label>
                   <select style={styles.select} name="language" onChange={handleChange} required>
-                      <option value="">--Select--</option><option value="English">English</option><option value="French">French</option><option value="Arabic">Arabic</option><option value="Amharic">Amharic</option>
+                      <option value="">--Select--</option>
+                      <option value="English">English</option>
+                      <option value="French">French</option>
+                      <option value="Arabic">Arabic</option>
+                      <option value="Amharic">Amharic</option> {/* Added Amharic! */}
                   </select>
               </div>
              <div style={styles.half}>
@@ -144,22 +205,41 @@ const RegisterPage = () => {
              <div style={styles.half}>
                 <label style={styles.label}>Current Week/Module</label>
                 <select style={styles.select} name="topic_module" onChange={handleChange} required value={formData.topic_module}>
-                    <option value="">--Select--</option>
+                    {!isAiCEC17 && <option value="">--Select--</option>}
                     {getModules().map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
              </div>
              <div style={styles.half}>
-                <label style={styles.label}>Preferred Meeting Method</label>
-                <select style={styles.select} name="meeting_preference" onChange={handleChange} required value={formData.meeting_preference}>
-                    <option value="All">Any / All</option>
-                    <option value="Google Meet">Google Meet / Video</option>
-                    <option value="Zoom">Zoom</option>
-                    <option value="WhatsApp">WhatsApp</option>
-                    <option value="Telegram">Telegram</option>
+                <label style={styles.label}>Learning Preference</label>
+                <select style={styles.select} name="learning_preferences" onChange={handleChange} required value={formData.learning_preferences}>
+                {isAiCEC17 ? (
+                    <option value="Dedicated Accountability Partner">Dedicated Accountability Partner</option>
+                ) : (
+                    <>
+                        <option value="">--Select--</option>
+                        <option value="Deep dive">Deep dive</option>
+                        <option value="Co-work sessions">Co-work sessions</option>
+                        <option value="General program navigation">General program navigation</option>
+                        <option value="Flexible">Flexible</option>
+                    </>
+                )}
                 </select>
              </div>
            </div>
 
+           {/* --- NEW: MEETING PREFERENCE --- */}
+           <div>
+              <label style={styles.label}>Preferred Meeting Method</label>
+              <select style={styles.select} name="meeting_preference" onChange={handleChange} required value={formData.meeting_preference}>
+                  <option value="All">Any / All</option>
+                  <option value="Google Meet">Google Meet / Video</option>
+                  <option value="Zoom">Zoom</option>
+                  <option value="WhatsApp">WhatsApp</option>
+                  <option value="Telegram">Telegram</option>
+              </select>
+           </div>
+
+           {/* --- CONDITIONAL RENDER: VOLUNTEER CAPACITY VS GLOBAL PAIRING --- */}
            {connectionType === 'offer' ? (
               <div>
                 <label style={styles.label}>How many peers can you support? (Volunteers are matched Globally)</label>
@@ -173,11 +253,40 @@ const RegisterPage = () => {
            ) : (
               <div>
                 <label style={styles.label}>Open to Global Pairing?</label>
-                <select style={styles.select} name="open_to_global_pairing" onChange={handleChange} required value={formData.open_to_global_pairing}>
-                    <option value="No">No - Match within my Country/Timezone</option>
-                    <option value="Yes">Yes - Match me with anyone (Faster)</option>
+                <select 
+                   style={styles.select} 
+                   name="open_to_global_pairing" 
+                   onChange={handleChange} 
+                   required 
+                   value={formData.open_to_global_pairing}
+                >
+                   <option value="No">No - Match within my Country/Module/Availability</option>
+                   <option value="Yes">Yes - Match me with anyone (Faster)</option>
                 </select>
+                <p style={{fontSize:'0.8rem', color:'#666', marginTop:'5px', marginBottom:'15px'}}>
+                   *Select 'Yes' to relax constraints and find a match faster.
+                </p>
               </div>
+           )}
+
+           {connectionType === 'find' && (
+             <div>
+                <label style={styles.label}>Preferred Group Size</label>
+                {isAiCEC17 ? (
+                    <select style={styles.select} name="preferred_study_setup" value="2" disabled={true}>
+                        <option value="2">Pair (2 People)</option>
+                    </select>
+                ) : (
+                    <select style={styles.select} name="preferred_study_setup" onChange={handleChange} required>
+                        <option value="2">Pair (2 people)</option>
+                        <option value="3">Group of 3</option>
+                    </select>
+                )}
+             </div>
+           )}
+           
+           {connectionType !== 'find' && (
+             <div><label style={styles.label}>Support Type</label><select style={styles.select} name="kind_of_support" onChange={handleChange} required><option value="">--Select--</option><option value="Content Explanation">Content Explanation</option><option value="Test or Milestone clarification">Test or Milestone clarification</option><option value="Full support">Full support</option></select></div>
            )}
 
            <div style={styles.checkboxContainer}>
@@ -201,14 +310,20 @@ const styles = {
   backBtn: { alignSelf: 'flex-start', marginBottom: '20px', background: 'transparent', border: `1px solid ${colors.secondary.electricBlue}`, color: colors.secondary.electricBlue, padding: '8px 16px', borderRadius: '20px', cursor: 'pointer' },
   card: { background: colors.primary.white, padding: '2.5rem', borderRadius: '16px', width: '100%', maxWidth: '600px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' },
   header: { textAlign: 'center', color: colors.primary.berkeleyBlue, marginBottom: '1.5rem', fontSize: '1.5rem', fontWeight: 'bold' },
+  warningBox: { background: '#fffbf0', border: `1px solid ${colors.secondary.gold}`, borderRadius: '12px', padding: '15px', marginBottom: '25px', color: '#856404' },
+  warningTitle: { margin: '0 0 10px 0', fontSize: '1rem', color: colors.secondary.tomato },
+  warningList: { paddingLeft: '20px', margin: 0 },
   form: { display: 'flex', flexDirection: 'column', gap: '15px' },
   row: { display: 'flex', gap: '15px' },
   half: { flex: 1 },
   label: { fontWeight: '600', fontSize: '0.9rem', color: colors.primary.berkeleyBlue, marginBottom: '5px', display: 'block' },
   input: { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '1rem', boxSizing: 'border-box', outlineColor: colors.secondary.electricBlue },
   select: { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '1rem', backgroundColor: 'white', boxSizing: 'border-box' },
+  
+  // NEW TIMEZONE STYLES
   tzWrapper: { display: 'flex', alignItems: 'center', background: 'white', border: '1px solid #ddd', borderRadius: '8px', paddingLeft: '12px', overflow: 'hidden' },
   tzSelect: { border: 'none', background: 'transparent', width: '100%', padding: '12px 5px', outline: 'none', fontSize: '1rem', cursor: 'pointer' },
+  
   submitButton: { padding: '15px', marginTop: '20px', background: `linear-gradient(45deg, ${colors.primary.iris}, ${colors.secondary.electricBlue})`, border: 'none', borderRadius: '30px', color: 'white', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer' },
   checkboxContainer: { display: 'flex', alignItems: 'center', marginTop: '10px' },
 };
