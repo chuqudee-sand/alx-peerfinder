@@ -199,7 +199,7 @@ const AdminPage = () => {
                 <StatCard title="Match Speed" value={data?.stats?.match_speed || 'N/A'} color="#17a2b8" emoji="🏎️" />
                 <StatCard title="Overall Rating" value={data?.stats?.tool_rating || 'N/A'} color="#e83e8c" emoji="⭐" />
                 <StatCard title="Unpaired Needs" value={unpairedList.filter(l => l.connection_type === 'need').length} color={colors.secondary.tomato} emoji="🆘" />
-                <StatCard title="Unpaired Vols" value={unpairedList.filter(l => l.connection_type === 'offer').length} color="#FF9800" emoji="🌟" />
+                <StatCard title="Unpaired Volunteers" value={unpairedList.filter(l => l.connection_type === 'offer').length} color="#FF9800" emoji="🌟" />
             </div>
             
             <div style={styles.chartsGrid}>
