@@ -141,7 +141,6 @@ const AdminPage = () => {
     return acc;
   }, {});
 
-  // NEW: Search Filter for Paired Groups
   const filteredGroupsArray = Object.entries(matchedGroups).filter(([groupId, members]) => {
       if (!filterText) return true;
       const lowerFilter = filterText.toLowerCase();
@@ -203,7 +202,6 @@ const AdminPage = () => {
                 <StatCard title="Unpaired Vols" value={unpairedList.filter(l => l.connection_type === 'offer').length} color="#FF9800" emoji="🌟" />
             </div>
             
-            {/* RESTORED ANALYTICS CHARTS */}
             <div style={styles.chartsGrid}>
                 <ChartBox title="By Cohort" data={cohorts} color={colors.primary.iris} />
                 <ChartBox title="Unpaired Days" data={daysUnpaired} color={colors.secondary.tomato} />
@@ -227,7 +225,8 @@ const AdminPage = () => {
             <div style={styles.tableWrapper}>
               <table style={styles.table}>
                 <thead>
-                  <tr><th>Select</th><th>Days</th><th>Name</th><th>Country</th><th>Program</th><th>Cohort</th><th>Request</th><th>Capacity</th><th>Actions</th></tr>
+                  {/* TIMEZONE RESTORED HERE */}
+                  <tr><th>Select</th><th>Days</th><th>Name</th><th>Country</th><th>Time Zone</th><th>Program</th><th>Cohort</th><th>Request</th><th>Capacity</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
                   {unpairedList.map(l => (
@@ -236,6 +235,7 @@ const AdminPage = () => {
                       <td><span style={styles.badge}>{getDaysSince(l.timestamp)}d</span></td>
                       <td><strong>{l.name}</strong><br/><span style={styles.subText}>{l.email}</span></td>
                       <td>{l.country || '-'}</td>
+                      <td>{l.timezone || '-'}</td> {/* TIMEZONE DATA HERE */}
                       <td>{l.program}</td><td>{l.cohort}</td>
                       <td>{l.connection_type.toUpperCase()}</td>
                       <td>{l.volunteer_capacity !== 'None' ? l.volunteer_capacity : '-'}</td>
