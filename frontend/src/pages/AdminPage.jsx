@@ -20,6 +20,7 @@ const AdminPage = () => {
 
   const [modal, setModal] = useState({ isOpen: false, type: null, title: '', message: '', isSuccess: false, action: null });
 
+  // --- LOGIN ---
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -29,261 +30,274 @@ const AdminPage = () => {
         setData(res.data);
         setIsAuthenticated(true);
       }
-    } catch (err) {
-      alert("Login failed");
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { alert("Login Failed"); } 
+    finally { setLoading(false); }
   };
 
-  const handleAction = async (endpoint, payload = {}) => {
-    setLoading(true);
+  const refreshData = async () => {
     try {
-      const res = await axios.post(`${API_URL}${endpoint}`, { password, ...payload });
-      if (res.data.success) {
-        const refresh = await axios.post(`${API_URL}/api/admin/data`, { password });
-        setData(refresh.data);
-        setModal({ isOpen: true, title: 'Success', message: res.data.message || 'Action completed!', isSuccess: true });
-        setSelectedIds([]); 
-      } else {
-        setModal({ isOpen: true, title: 'Failed', message: res.data.message || 'Action failed', isSuccess: false });
-      }
-    } catch (err) {
-      setModal({ isOpen: true, title: 'Error', message: err.response?.data?.error || 'Server error', isSuccess: false });
-    } finally {
-      setLoading(false);
-    }
+      const res = await axios.post(`${API_URL}/api/admin/data`, { password });
+      setData(res.data);
+      setSelectedIds([]); 
+    } catch (err) { console.error(err); }
   };
 
-  const handleDownload = async (type) => {
-    const endpoint = type === 'feedback' ? '/api/admin/download-feedback' : type === 'session_feedback' ? '/api/admin/download-session-feedback' : '/api/admin/download';
+  // --- ACTIONS ---
+  const initiateRandomPair = (userId, userName) => {
+    setModal({
+      isOpen: true, type: 'confirm', title: 'Confirm Random Pairing',
+      message: `Pair ${userName} with ANY available learner matching their group preference?`,
+      action: () => executePairing('random-pair', { user_id: userId })
+    });
+  };
+
+  const initiateManualPair = () => {
+    setModal({
+      isOpen: true, type: 'confirm', title: 'Confirm Manual Pairing',
+      message: `Force pair these ${selectedIds.length} users?`,
+      action: () => executePairing('manual-pair', { user_ids: selectedIds })
+    });
+  };
+
+  const initiateUnpairGroup = (userId, groupName) => {
+    setModal({
+      isOpen: true, type: 'confirm', title: 'Dissolve Group?',
+      message: `Unpair everyone in ${groupName}?`,
+      action: () => executeUnpair(userId)
+    });
+  };
+
+  const executePairing = async (endpoint, payload) => {
     try {
-      const res = await axios.post(`${API_URL}${endpoint}`, { password }, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${type}_data.csv`);
-      document.body.appendChild(link);
-      link.click();
-    } catch (err) {
-      alert("Download failed");
+      const res = await axios.post(`${API_URL}/api/admin/${endpoint}`, { password, ...payload });
+      handleResult(res.data.success, res.data.message);
+    } catch (err) { handleResult(false, err.response?.data?.error || err.message); }
+  };
+
+  const executeUnpair = async (userId) => {
+    try {
+      const res = await axios.post(`${API_URL}/api/unpair/${userId}`, { reason: "Admin Dissolved Group" });
+      handleResult(res.data.success, "Group dissolved.");
+    } catch (err) { handleResult(false, err.message); }
+  };
+
+  const handleResult = (success, msg) => {
+    setModal({ isOpen: true, type: 'result', title: success ? 'Success! 🎉' : 'Failed ❌', message: msg, isSuccess: success, action: null });
+    if (success) refreshData();
+  };
+
+  const closeModal = () => setModal({ ...modal, isOpen: false });
+  const toggleSelection = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
+  // --- DOWNLOADS ---
+  const downloadCSV = async () => {
+    try {
+      const res = await axios.post(`${API_URL}/api/admin/download`, { password }, { responseType: 'blob' });
+      triggerDownload(res.data, 'peer_data.csv');
+    } catch (err) { alert("Download failed"); }
+  };
+
+  const downloadFeedback = async () => {
+    try {
+      const res = await axios.post(`${API_URL}/api/admin/download-feedback`, { password }, { responseType: 'blob' });
+      triggerDownload(res.data, 'feedback.csv');
+    } catch (err) { alert("Feedback download failed"); }
+  };
+
+  const downloadSessionFeedback = async () => {
+    try {
+      const res = await axios.post(`${API_URL}/api/admin/download-session-feedback`, { password }, { responseType: 'blob' });
+      triggerDownload(res.data, 'peer_session_feedback.csv');
+    } catch (err) { alert("Session Feedback download failed"); }
+  };
+
+  const triggerDownload = (data, filename) => {
+    const url = window.URL.createObjectURL(new Blob([data]));
+    const link = document.createElement('a');
+    link.href = url; link.setAttribute('download', filename);
+    document.body.appendChild(link); link.click();
+  };
+
+  const getDaysSince = (dateStr) => {
+    if (!dateStr) return 0;
+    return Math.floor((new Date() - new Date(dateStr)) / (1000 * 60 * 60 * 24));
+  };
+
+  if (!isAuthenticated) return <LoginScreen handleLogin={handleLogin} password={password} setPassword={setPassword} loading={loading} />;
+
+  // Filter Data
+  const programLearners = data.learners.filter(l => programFilter === "All" || l.program === programFilter);
+  
+  const unpairedList = programLearners
+    .filter(l => !l.matched)
+    .filter(l => l.name.toLowerCase().includes(filterText.toLowerCase()) || l.email.toLowerCase().includes(filterText.toLowerCase()) || l.cohort.toLowerCase().includes(filterText.toLowerCase()))
+    .sort((a, b) => getDaysSince(b.timestamp) - getDaysSince(a.timestamp));
+
+  const matchedGroups = programLearners.reduce((acc, curr) => {
+    if (curr.matched && curr.group_id) {
+      if (!acc[curr.group_id]) acc[curr.group_id] = [];
+      acc[curr.group_id].push(curr);
     }
-  };
+    return acc;
+  }, {});
 
-  const toggleSelection = (id) => {
-    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-  };
+  // NEW: Search Filter for Paired Groups
+  const filteredGroupsArray = Object.entries(matchedGroups).filter(([groupId, members]) => {
+      if (!filterText) return true;
+      const lowerFilter = filterText.toLowerCase();
+      return members.some(m => m.name.toLowerCase().includes(lowerFilter) || m.email.toLowerCase().includes(lowerFilter));
+  });
 
-  if (!isAuthenticated) {
-    return (
-      <div style={styles.loginContainer}>
-        <div style={styles.loginCard}>
-          <h2 style={{ color: colors.primary.berkeleyBlue }}>Admin Access</h2>
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <input type="password" placeholder="Enter Admin Password" value={password} onChange={(e) => setPassword(e.target.value)} style={styles.input} required />
-            <button type="submit" style={styles.btnPrimary} disabled={loading}>{loading ? 'Authenticating...' : 'Login'}</button>
-          </form>
-        </div>
-      </div>
-    );
-  }
+  const totalGroupPages = Math.ceil(filteredGroupsArray.length / groupsPerPage);
+  const paginatedGroups = filteredGroupsArray.slice((currentGroupPage - 1) * groupsPerPage, currentGroupPage * groupsPerPage);
 
-  const learners = data?.learners || [];
-  const filteredLearners = learners.filter(l => 
-    (programFilter === "All" || l.program === programFilter) &&
-    (l.name.toLowerCase().includes(filterText.toLowerCase()) || l.email.toLowerCase().includes(filterText.toLowerCase()))
-  );
-
-  const matched = filteredLearners.filter(l => l.matched === true);
-  const unmatched = filteredLearners.filter(l => l.matched !== true);
-
-  const groups = {};
-  matched.forEach(l => {
-    if (l.group_id) {
-      if (!groups[l.group_id]) groups[l.group_id] = [];
-      groups[l.group_id].push(l);
+  // Chart Data
+  const cohorts = {}; const countries = {}; const daysUnpaired = {};
+  programLearners.forEach(l => {
+    cohorts[l.cohort] = (cohorts[l.cohort] || 0) + 1;
+    const ctry = l.country || 'Unknown'; countries[ctry] = (countries[ctry] || 0) + 1;
+    if (!l.matched) {
+      const d = getDaysSince(l.timestamp);
+      const bucket = d > 10 ? '10+' : d.toString();
+      daysUnpaired[bucket] = (daysUnpaired[bucket] || 0) + 1;
     }
   });
 
-  const groupKeys = Object.keys(groups);
-  const indexOfLastGroup = currentGroupPage * groupsPerPage;
-  const indexOfFirstGroup = indexOfLastGroup - groupsPerPage;
-  const currentGroups = groupKeys.slice(indexOfFirstGroup, indexOfLastGroup);
-  const totalPages = Math.ceil(groupKeys.length / groupsPerPage);
-
-  const paginate = (pageNumber) => setCurrentGroupPage(pageNumber);
+  const totalInView = programLearners.length;
+  const matchedInView = programLearners.filter(l => l.matched).length;
+  const pendingInView = totalInView - matchedInView;
+  const matchRate = totalInView > 0 ? ((matchedInView / totalInView) * 100).toFixed(1) + '%' : '0.0%';
 
   return (
     <div style={styles.dashboardContainer}>
-      <div style={styles.sidebar}>
-        <h2 style={{ color: 'white', marginBottom: '30px' }}>Admin Panel</h2>
-        <button style={activeTab === 'dashboard' ? styles.tabActive : styles.tab} onClick={() => setActiveTab('dashboard')}>📊 Dashboard</button>
-        <button style={activeTab === 'unmatched' ? styles.tabActive : styles.tab} onClick={() => setActiveTab('unmatched')}>⏳ Unpaired ({unmatched.length})</button>
-        <button style={activeTab === 'matched' ? styles.tabActive : styles.tab} onClick={() => setActiveTab('matched')}>✅ Paired Groups</button>
-        
-        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <button onClick={() => handleDownload('main')} style={styles.btnSecondary}>📥 Download Data CSV</button>
-          <button onClick={() => handleDownload('session_feedback')} style={{...styles.btnSecondary, background: '#17a2b8', color: 'white'}}>📥 Session Feedback CSV</button>
-          <button onClick={() => handleDownload('feedback')} style={{...styles.btnSecondary, background: '#e83e8c', color: 'white'}}>📥 App Feedback CSV</button>
+      <div style={styles.topBar}>
+        <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
+            <h1 style={{color: 'white', margin: 0}}>Admin</h1>
+            <select value={programFilter} onChange={e => { setProgramFilter(e.target.value); setCurrentGroupPage(1); }} style={styles.programSelect}>
+                <option value="All">All Programs</option><option value="VA">VA</option><option value="AiCE">AiCE</option><option value="PF">PF</option>
+            </select>
+        </div>
+        <div style={{display:'flex', gap:'10px'}}>
+            <button onClick={downloadCSV} style={styles.btnSecondary}>📥 Data</button>
+            <button onClick={downloadFeedback} style={{...styles.btnSecondary, background: colors.secondary.tomato, color:'white'}}>📥 Feedback</button>
+            <button onClick={downloadSessionFeedback} style={{...styles.btnSecondary, background: colors.primary.springGreen, color: colors.primary.berkeleyBlue}}>📥 Session Feedback</button>
         </div>
       </div>
 
-      <div style={styles.mainContent}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <input type="text" placeholder="Search learners..." value={filterText} onChange={(e) => setFilterText(e.target.value)} style={styles.searchInput} />
-          <select style={styles.filterSelect} value={programFilter} onChange={(e) => setProgramFilter(e.target.value)}>
-            <option value="All">All Programs</option>
-            <option value="AiCE">AiCE</option>
-            <option value="VA">VA</option>
-            <option value="PF">PF</option>
-          </select>
-        </div>
+      <div style={styles.tabs}>
+        <TabButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} label="Analytics" />
+        <TabButton active={activeTab === 'unpaired'} onClick={() => setActiveTab('unpaired')} label={`Unpaired (${unpairedList.length})`} />
+        <TabButton active={activeTab === 'matches'} onClick={() => setActiveTab('matches')} label={`Active Groups (${filteredGroupsArray.length})`} />
+      </div>
 
+      <div style={styles.contentArea}>
         {activeTab === 'dashboard' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <h2 style={{ color: colors.primary.berkeleyBlue }}>Overview</h2>
-            
-            {/* UPDATED: Main Analytics Grid */}
+          <div>
             <div style={styles.statsGrid}>
-              <div style={styles.statCard}><h3>{data.stats.total}</h3><p>Total Registered</p></div>
-              <div style={styles.statCard}><h3>{data.stats.matched}</h3><p>Total Matched</p></div>
-              <div style={styles.statCard}><h3>{data.stats.pending}</h3><p>Waiting in Queue</p></div>
-              <div style={styles.statCard}><h3>{data.stats.match_rate}</h3><p>Match Rate</p></div>
-              
-              {/* NEW ANALYTICS CARDS */}
-              <div style={{...styles.statCard, borderTop: `4px solid ${colors.secondary.electricBlue}`}}>
-                  <h3 style={{color: colors.secondary.electricBlue}}>{data.stats.tool_rating}</h3>
-                  <p>Overall Tool Rating</p>
-              </div>
-              <div style={{...styles.statCard, borderTop: `4px solid ${colors.primary.iris}`}}>
-                  <h3 style={{color: colors.primary.iris}}>{data.stats.match_speed}</h3>
-                  <p>Median Match Speed</p>
-              </div>
-              <div style={{...styles.statCard, borderTop: `4px solid ${colors.secondary.tomato}`}}>
-                  <h3 style={{color: colors.secondary.tomato}}>{data.stats.unpaired_need}</h3>
-                  <p>Unpaired Needs Support</p>
-              </div>
-              <div style={{...styles.statCard, borderTop: `4px solid ${colors.secondary.gold}`}}>
-                  <h3 style={{color: colors.secondary.gold}}>{data.stats.unpaired_offer}</h3>
-                  <p>Unpaired Volunteers</p>
-              </div>
+                <StatCard title="Total Learners" value={totalInView} color={colors.primary.iris} emoji="👥" />
+                <StatCard title="Match Rate" value={matchRate} sub={`(${matchedInView})`} color={colors.primary.springGreen} emoji="🎯" />
+                <StatCard title="Pending Queue" value={pendingInView} color={colors.secondary.gold} emoji="⏳" />
+                <StatCard title="Match Speed" value={data?.stats?.match_speed || 'N/A'} color="#17a2b8" emoji="🏎️" />
+                <StatCard title="Overall Rating" value={data?.stats?.tool_rating || 'N/A'} color="#e83e8c" emoji="⭐" />
+                <StatCard title="Unpaired Needs" value={unpairedList.filter(l => l.connection_type === 'need').length} color={colors.secondary.tomato} emoji="🆘" />
+                <StatCard title="Unpaired Vols" value={unpairedList.filter(l => l.connection_type === 'offer').length} color="#FF9800" emoji="🌟" />
             </div>
-
-            <div style={{ marginTop: '30px', background: 'white', padding: '20px', borderRadius: '10px' }}>
-              <h3>Community Health</h3>
-              <p>Offering Support: <strong>{data.stats.offer}</strong> | Needing Support: <strong>{data.stats.need}</strong></p>
+            
+            {/* RESTORED ANALYTICS CHARTS */}
+            <div style={styles.chartsGrid}>
+                <ChartBox title="By Cohort" data={cohorts} color={colors.primary.iris} />
+                <ChartBox title="Unpaired Days" data={daysUnpaired} color={colors.secondary.tomato} />
+                <ChartBox title="By Country" data={countries} color={colors.secondary.electricBlue} wide />
             </div>
-          </motion.div>
+          </div>
         )}
 
-        {activeTab === 'unmatched' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h2 style={{ color: colors.primary.berkeleyBlue }}>Unpaired Learners</h2>
-                <button 
-                  style={selectedIds.length >= 2 ? styles.btnPrimary : styles.btnDisabled} 
-                  disabled={selectedIds.length < 2 || loading}
-                  onClick={() => handleAction('/api/admin/manual-pair', { user_ids: selectedIds })}
-                >
-                  Manually Pair Selected ({selectedIds.length})
-                </button>
+        {activeTab === 'unpaired' && (
+          <div>
+            <div style={styles.filterBar}>
+              <input placeholder="Search by name or email..." style={styles.filterInput} value={filterText} onChange={e => setFilterText(e.target.value)} />
+              <AnimatePresence>
+                {selectedIds.length >= 2 && (
+                  <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} style={styles.fab} onClick={initiateManualPair}>
+                    Pair Selected ({selectedIds.length}) 🔗
+                  </motion.button>
+                )}
+              </AnimatePresence>
             </div>
-            
-            <div style={styles.tableContainer}>
+            <div style={styles.tableWrapper}>
               <table style={styles.table}>
                 <thead>
-                  <tr>
-                    <th>Select</th>
-                    <th>Date</th>
-                    <th>Name</th>
-                    <th>Program</th>
-                    <th>Cohort</th>
-                    <th>Module</th>
-                    <th>Connection Type</th>
-                    <th>Time Zone</th> {/* NEW COLUMN HEADER */}
-                    <th>Action</th>
-                  </tr>
+                  <tr><th>Select</th><th>Days</th><th>Name</th><th>Country</th><th>Program</th><th>Cohort</th><th>Request</th><th>Capacity</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
-                  {unmatched.map(u => (
-                    <tr key={u.id}>
-                      <td><input type="checkbox" checked={selectedIds.includes(u.id)} onChange={() => toggleSelection(u.id)}/></td>
-                      <td>{new Date(u.timestamp).toLocaleDateString()}</td>
-                      <td>{u.name}</td>
-                      <td><span style={styles.badge}>{u.program}</span></td>
-                      <td>{u.cohort}</td>
-                      <td>{u.topic_module}</td>
-                      <td><strong>{u.connection_type.toUpperCase()}</strong></td>
-                      <td>{u.timezone || 'N/A'}</td> {/* NEW COLUMN DATA */}
-                      <td>
-                        <button style={styles.btnAction} onClick={() => handleAction('/api/admin/random-pair', { user_id: u.id })}>Auto-Pair</button>
-                      </td>
+                  {unpairedList.map(l => (
+                    <tr key={l.id} style={selectedIds.includes(l.id) ? styles.trSelected : styles.tr}>
+                      <td><input type="checkbox" checked={selectedIds.includes(l.id)} onChange={() => toggleSelection(l.id)} style={{cursor:'pointer'}} /></td>
+                      <td><span style={styles.badge}>{getDaysSince(l.timestamp)}d</span></td>
+                      <td><strong>{l.name}</strong><br/><span style={styles.subText}>{l.email}</span></td>
+                      <td>{l.country || '-'}</td>
+                      <td>{l.program}</td><td>{l.cohort}</td>
+                      <td>{l.connection_type.toUpperCase()}</td>
+                      <td>{l.volunteer_capacity !== 'None' ? l.volunteer_capacity : '-'}</td>
+                      <td><button style={styles.btnSmall} onClick={() => initiateRandomPair(l.id, l.name)}>Random 🎲</button></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </motion.div>
+          </div>
         )}
 
-        {activeTab === 'matched' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <h2 style={{ color: colors.primary.berkeleyBlue }}>Paired Groups</h2>
+        {activeTab === 'matches' && (
+          <div>
+            <div style={styles.filterBar}>
+              <input placeholder="Search groups by learner name or email..." style={styles.filterInput} value={filterText} onChange={e => {setFilterText(e.target.value); setCurrentGroupPage(1);}} />
+            </div>
             <div style={styles.groupsGrid}>
-              {currentGroups.map(gid => (
-                <div key={gid} style={styles.groupCard}>
-                  <div style={{ background: '#f8f9fa', padding: '10px', borderBottom: '1px solid #eee', fontSize: '0.8rem', color: '#666', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Group ID: {gid.split('-')[1]}...</span>
-                      <span>Matched: {new Date(groups[gid][0].matched_timestamp).toLocaleDateString()}</span>
+              {paginatedGroups.map(([groupId, members]) => (
+                <div key={groupId} style={styles.groupCard}>
+                  <div style={styles.groupHeader}>
+                    <span style={{fontWeight:'bold', color: colors.primary.berkeleyBlue}}>{members[0].program} Group ({members.length})</span>
+                    <button style={styles.btnUnpair} onClick={() => initiateUnpairGroup(members[0].id, members[0].name + "'s Group")}>Unpair 🚫</button>
                   </div>
-                  <div style={{ padding: '15px' }}>
-                      {groups[gid].map(member => (
-                        <div key={member.id} style={{ marginBottom: '10px', paddingBottom: '10px', borderBottom: '1px dashed #eee' }}>
-                          <strong>{member.name}</strong> <span style={styles.badge}>{member.program}</span><br/>
-                          
-                          {/* UPDATED MEMBER META-DATA */}
-                          <span style={{ fontSize: '0.85rem', color: '#555' }}>📧 {member.email} | 📱 {member.phone}</span><br/>
-                          <span style={{ fontSize: '0.85rem', color: colors.primary.iris }}>
-                              Role: <strong>{member.connection_type.toUpperCase()}</strong> | Prefers: <strong>{member.meeting_preference || 'All'}</strong>
-                          </span>
-                          
-                        </div>
-                      ))}
-                      <button style={styles.btnUnpair} onClick={() => setModal({
-                          isOpen: true, type: 'confirm', title: 'Unpair Group?', message: 'This will break the group and put members back in queue.',
-                          action: () => handleAction(`/api/unpair/${groups[gid][0].id}`, { reason: 'Admin Forced Unpair' })
-                      })}>Break Group</button>
+                  <div style={styles.groupMembers}>
+                    {members.map(m => (
+                      <div key={m.id} style={styles.memberChip}>
+                        <span style={{fontWeight:'bold'}}>{m.name}</span> <span style={styles.subText}>| {m.email}</span><br/>
+                        <span style={{fontSize:'0.8rem', color: colors.primary.iris}}>
+                          Role: <strong>{m.connection_type.toUpperCase()}</strong> | Prefers: <strong>{m.meeting_preference || 'All'}</strong> | TZ: <strong>{m.timezone || 'N/A'}</strong>
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
             </div>
 
-            {totalPages > 1 && (
+            {totalGroupPages > 1 && (
               <div style={styles.paginationContainer}>
-                <button onClick={() => paginate(currentGroupPage - 1)} disabled={currentGroupPage === 1} style={currentGroupPage === 1 ? styles.pageBtnDisabled : styles.pageBtn}>Previous</button>
-                <span style={{ fontWeight: 'bold', color: colors.primary.berkeleyBlue }}>Page {currentGroupPage} of {totalPages}</span>
-                <button onClick={() => paginate(currentGroupPage + 1)} disabled={currentGroupPage === totalPages} style={currentGroupPage === totalPages ? styles.pageBtnDisabled : styles.pageBtn}>Next</button>
+                <button style={currentGroupPage === 1 ? styles.pageBtnDisabled : styles.pageBtn} disabled={currentGroupPage === 1} onClick={() => setCurrentGroupPage(p => p - 1)}>&larr; Previous</button>
+                <span style={styles.pageText}>Page {currentGroupPage} of {totalGroupPages}</span>
+                <button style={currentGroupPage === totalGroupPages ? styles.pageBtnDisabled : styles.pageBtn} disabled={currentGroupPage === totalGroupPages} onClick={() => setCurrentGroupPage(p => p + 1)}>Next &rarr;</button>
               </div>
             )}
-          </motion.div>
+          </div>
         )}
       </div>
 
       <AnimatePresence>
         {modal.isOpen && (
           <div style={styles.modalOverlay}>
-            <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} style={styles.modalContent}>
-              <h2 style={{ color: modal.isSuccess ? 'green' : colors.primary.berkeleyBlue }}>{modal.title}</h2>
+            <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} style={styles.modalContent}>
+              <h2 style={{color: modal.isSuccess ? 'green' : colors.primary.berkeleyBlue}}>{modal.title}</h2>
               <p>{modal.message}</p>
               <div style={styles.modalActions}>
                 {modal.type === 'confirm' ? (
                   <>
-                    <button style={styles.btnCancel} onClick={() => setModal({ isOpen: false })}>Cancel</button>
-                    <button style={styles.btnConfirm} onClick={() => { modal.action(); setModal({ isOpen: false }); }}>Confirm</button>
+                    <button onClick={closeModal} style={styles.btnCancel}>Cancel</button>
+                    <button onClick={modal.action} style={styles.btnConfirm}>Yes, Proceed</button>
                   </>
-                ) : (
-                  <button style={styles.btnConfirm} onClick={() => setModal({ isOpen: false })}>Close</button>
-                )}
+                ) : <button onClick={closeModal} style={styles.btnConfirm}>Close</button>}
               </div>
             </motion.div>
           </div>
@@ -293,39 +307,109 @@ const AdminPage = () => {
   );
 };
 
+const LoginScreen = ({ handleLogin, password, setPassword, loading }) => (
+  <div style={styles.centerContainer}>
+    <div style={styles.card}>
+      <h2>Admin Access</h2>
+      <form onSubmit={handleLogin}>
+        <input type="password" style={styles.input} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" />
+        <button style={styles.btnPrimary} disabled={loading}>
+            {loading ? <div style={{display:'flex', justifyContent:'center'}}><Spinner size="20px" color="white" /></div> : "Login"}
+        </button>
+      </form>
+    </div>
+  </div>
+);
+
+const TabButton = ({ active, onClick, label }) => (
+  <button style={active ? styles.activeTab : styles.tab} onClick={onClick}>{label}</button>
+);
+
+const StatCard = ({ title, value, sub, color, emoji }) => (
+  <div style={{...styles.statCard, borderLeft: `5px solid ${color}`}}>
+    <div style={{fontSize:'0.9rem', color:'#666', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+      {title} <span style={{fontSize:'1.2rem'}}>{emoji}</span>
+    </div>
+    <div style={{fontSize:'1.8rem', fontWeight:'bold', color: color, marginTop:'5px'}}>
+      {value} {sub && <span style={{fontSize:'0.9rem', color:'#888', fontWeight:'normal'}}>{sub}</span>}
+    </div>
+  </div>
+);
+
+const ChartBox = ({ title, data, color, wide }) => {
+  const max = Math.max(...Object.values(data), 1);
+  return (
+    <div style={{...styles.chartBox, gridColumn: wide ? 'span 2' : 'span 1'}}>
+      <h3>{title}</h3>
+      <div style={styles.chartContainer}>
+        {Object.keys(data).length === 0 ? <p style={{fontSize:'0.8rem', color:'#999'}}>No data</p> : 
+         Object.entries(data).map(([key, val]) => (
+          <div key={key} style={styles.barWrapper}>
+            <div style={styles.barLabel}>{key}</div>
+            <div style={styles.barTrack}>
+              <motion.div initial={{ width: 0 }} animate={{ width: `${(val / max) * 100}%` }} style={{...styles.barFill, background: color}}>
+                <span style={styles.barValue}>{val}</span>
+              </motion.div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const styles = {
-  loginContainer: { height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: colors.primary.berkeleyBlue, fontFamily: fonts.main },
-  loginCard: { background: 'white', padding: '3rem', borderRadius: '15px', width: '100%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' },
-  input: { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '1rem', boxSizing: 'border-box' },
-  btnPrimary: { width: '100%', padding: '12px', background: colors.primary.iris, color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' },
-  btnDisabled: { padding: '10px 20px', background: '#ccc', color: '#666', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'not-allowed' },
-  dashboardContainer: { display: 'flex', height: '100vh', background: '#f4f6f8', fontFamily: fonts.main },
-  sidebar: { width: '250px', background: colors.primary.berkeleyBlue, padding: '20px', display: 'flex', flexDirection: 'column' },
-  tab: { background: 'transparent', color: 'rgba(255,255,255,0.7)', border: 'none', padding: '15px', textAlign: 'left', fontSize: '1rem', cursor: 'pointer', borderRadius: '8px', marginBottom: '5px' },
-  tabActive: { background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', padding: '15px', textAlign: 'left', fontSize: '1rem', cursor: 'pointer', borderRadius: '8px', marginBottom: '5px', fontWeight: 'bold' },
-  btnSecondary: { padding: '12px', background: 'white', color: colors.primary.berkeleyBlue, border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' },
-  mainContent: { flex: 1, padding: '30px', overflowY: 'auto' },
-  searchInput: { padding: '10px', width: '300px', borderRadius: '8px', border: '1px solid #ddd' },
-  filterSelect: { padding: '10px', borderRadius: '8px', border: '1px solid #ddd' },
-  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' },
-  statCard: { background: 'white', padding: '20px', borderRadius: '10px', textAlign: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' },
-  tableContainer: { background: 'white', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' },
-  table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left' },
-  btnAction: { padding: '5px 10px', background: colors.secondary.electricBlue, color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' },
-  groupsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' },
-  groupCard: { background: 'white', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' },
-  btnUnpair: { width: '100%', padding: '10px', background: '#ffebee', color: '#d32f2f', border: 'none', fontWeight: 'bold', cursor: 'pointer' },
+  centerContainer: { minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f0f2f5' },
+  card: { background: 'white', padding: '2rem', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', textAlign: 'center', width:'100%', maxWidth:'400px' },
+  dashboardContainer: { minHeight: '100vh', background: '#f4f6f8', fontFamily: fonts.main },
+  topBar: { background: colors.primary.berkeleyBlue, padding: '1rem 2rem', color: 'white', display:'flex', justifyContent:'space-between' },
+  programSelect: { padding: '5px', borderRadius: '5px', marginLeft: '10px' },
+  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', padding: '20px 0' },
+  statCard: { background: 'white', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' },
+  tabs: { padding: '0 20px', display: 'flex', gap: '10px', borderBottom: '1px solid #ddd' },
+  tab: { padding: '10px 20px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#666', fontSize: '1rem' },
+  activeTab: { padding: '10px 20px', background: 'white', borderBottom: `3px solid ${colors.primary.iris}`, fontWeight: 'bold', cursor: 'pointer' },
+  contentArea: { padding: '20px' },
+  chartsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' },
+  chartBox: { background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' },
+  chartContainer: { marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '10px' },
+  barWrapper: { display: 'flex', alignItems: 'center', fontSize: '0.9rem' },
+  barLabel: { width: '100px', textAlign: 'right', marginRight: '10px', fontWeight: 'bold', color: '#555' },
+  barTrack: { flex: 1, background: '#f0f0f0', borderRadius: '4px', height: '24px', position: 'relative' },
+  barFill: { height: '100%', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: '5px' },
+  barValue: { color: 'white', fontSize: '0.8rem', fontWeight: 'bold' },
+  filterBar: { display: 'flex', justifyContent: 'space-between', marginBottom: '15px', alignItems:'center' },
+  filterInput: { padding: '10px', width: '300px', borderRadius: '5px', border: '1px solid #ddd' },
+  tableWrapper: { background: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' },
+  table: { width: '100%', borderCollapse: 'collapse' },
+  tr: { borderBottom: '1px solid #eee' },
+  trSelected: { background: '#e3f2fd', borderBottom: '1px solid #eee' },
+  subText: { fontSize: '0.8rem', color: '#666' },
+  input: { padding: '12px', width: '100%', marginBottom: '15px', borderRadius: '5px', border: '1px solid #ccc', boxSizing:'border-box' },
+  btnPrimary: { padding: '12px 20px', width:'100%', background: colors.primary.iris, color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight:'bold' },
+  btnSecondary: { padding: '8px 16px', background: 'white', color: colors.primary.berkeleyBlue, border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' },
+  btnSmall: { padding: '5px 10px', background: '#eee', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer', fontSize:'0.8rem' },
+  btnUnpair: { padding: '5px 10px', background: '#ffebee', color: '#c62828', border: '1px solid #ffcdd2', borderRadius: '4px', cursor: 'pointer', fontSize:'0.8rem', fontWeight:'bold' },
+  fab: { position: 'fixed', bottom: '30px', right: '30px', padding: '15px 25px', background: colors.primary.iris, color: 'white', borderRadius: '30px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem', zIndex: 100 },
+  groupsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' },
+  groupCard: { background: 'white', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', border: '1px solid #eee' },
+  groupHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '10px', paddingBottom: '10px', borderBottom: '1px solid #f0f0f0' },
+  groupMembers: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  memberChip: { padding: '8px', background: '#f9f9f9', borderRadius: '6px', fontSize: '0.9rem' },
   modalOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
   modalContent: { background: 'white', padding: '2rem', borderRadius: '10px', width: '90%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' },
   modalActions: { display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '20px' },
   btnConfirm: { padding: '8px 20px', background: colors.primary.iris, color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight:'bold' },
   btnCancel: { padding: '8px 20px', background: '#ccc', color: '#333', border: 'none', borderRadius: '5px', cursor: 'pointer' },
   badge: { background: '#fff3e0', color: '#e65100', padding: '3px 8px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' },
-  
-  // NEW PAGINATION STYLES
   paginationContainer: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginTop: '30px', padding: '10px' },
   pageBtn: { padding: '8px 16px', background: 'white', border: `1px solid ${colors.primary.iris}`, color: colors.primary.iris, borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' },
-  pageBtnDisabled: { padding: '8px 16px', background: '#f5f5f5', border: '1px solid #ddd', color: '#aaa', borderRadius: '5px', cursor: 'not-allowed' },
+  pageBtnDisabled: { padding: '8px 16px', background: '#f0f0f0', border: '1px solid #ddd', color: '#aaa', borderRadius: '5px', cursor: 'not-allowed' },
+  pageText: { fontWeight: 'bold', color: colors.primary.berkeleyBlue }
 };
+
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `td, th { padding: 12px; text-align: left; } th { background: #f8f9fa; color: #555; }`;
+document.head.appendChild(styleSheet);
 
 export default AdminPage;
