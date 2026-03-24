@@ -55,7 +55,7 @@ def load_google_token(env_var_name):
         return None
     try:
         return json.loads(token_str)
-    except json.JSONDecodeError as e:
+    except json.JSONDecodeError:
         return None
 
 PROGRAM_CREDENTIALS = {
@@ -95,7 +95,7 @@ def api_wrapper(f):
     def wrapper(*args, **kwargs):
         try:
             return f(*args, **kwargs)
-        except ClientError as e:
+        except ClientError:
             return jsonify({"success": False, "error": "Database connection failed (S3)"}), 503
         except pd.errors.EmptyDataError:
             return jsonify({"success": False, "error": "Data file is empty or corrupted"}), 500
@@ -115,7 +115,7 @@ def get_gmail_service(program_name):
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
         return build('gmail', 'v1', credentials=creds), config['email']
-    except Exception as e:
+    except Exception:
         return None, None
 
 def send_email(to, subject, body, program_name, is_html=True):
@@ -145,7 +145,7 @@ def send_email(to, subject, body, program_name, is_html=True):
         raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
         service.users().messages().send(userId='me', body={'raw': raw}).execute()
         return True
-    except Exception as e:
+    except Exception:
         return False
 
 def notify_group_match(df, group_id):
@@ -154,7 +154,6 @@ def notify_group_match(df, group_id):
     
     for _, current_user in grp.iterrows():
         peer_info_html = ""
-        
         for _, peer in grp.iterrows():
             if peer['id'] != current_user['id']:
                 clean_phone = re.sub(r'\D', '', str(peer['phone']))
@@ -205,7 +204,7 @@ def notify_group_match(df, group_id):
         """
         try:
             send_email(current_user['email'], "You've been matched! 🎉", body, current_user['program'], is_html=True)
-        except Exception as e:
+        except Exception:
             pass
 
 # === DATA HANDLING ===
@@ -270,7 +269,7 @@ def availability_match(a1, a2):
 @app.route('/', methods=['GET'])
 @api_wrapper
 def health():
-    return jsonify({"status": "active", "version": "CA_Modular_Admin_Upgraded"})
+    return jsonify({"status": "active", "version": "CA_Modular_Admin_Charts"})
 
 @app.route('/api/register', methods=['POST'])
 @api_wrapper
@@ -284,6 +283,9 @@ def register():
     if not phone.startswith('+'): phone = '+' + phone.lstrip('+')
 
     df = download_csv()
+    
+    # Capacity Logic Fix
+    capacity_val = data.get('volunteer_capacity', '3') if data['connection_type'] == 'offer' else 'None'
     
     existing_mask = ((df['email'] == email) | (df['phone'] == phone)) & (df['connection_type'] == data['connection_type'])
     if not df[existing_mask].empty:
@@ -306,7 +308,7 @@ def register():
             df.at[idx, 'connection_type'] = data['connection_type']
             df.at[idx, 'open_to_global_pairing'] = data.get('open_to_global_pairing', 'No')
             df.at[idx, 'match_attempted'] = False 
-            df.at[idx, 'volunteer_capacity'] = data.get('volunteer_capacity', '3')
+            df.at[idx, 'volunteer_capacity'] = capacity_val
             df.at[idx, 'meeting_preference'] = data.get('meeting_preference', 'All')
             df.at[idx, 'timezone'] = data.get('timezone', '')
             upload_csv(df)
@@ -327,7 +329,7 @@ def register():
         'timestamp': datetime.now(timezone.utc).isoformat(),
         'matched': False, 'group_id': '', 'unpair_reason': '',
         'matched_timestamp': '', 'match_attempted': False,
-        'volunteer_capacity': data.get('volunteer_capacity', '3'),
+        'volunteer_capacity': capacity_val,
         'meeting_preference': data.get('meeting_preference', 'All'),
         'timezone': data.get('timezone', '')
     }
@@ -434,7 +436,7 @@ def match():
             updated = True
             
     elif user['connection_type'] == 'offer':
-        capacity = int(float(user.get('volunteer_capacity', 3))) if pd.notna(user.get('volunteer_capacity')) and user.get('volunteer_capacity') != '' else 3
+        capacity = int(float(user.get('volunteer_capacity', 3))) if pd.notna(user.get('volunteer_capacity')) and user.get('volunteer_capacity') not in ['', 'None'] else 3
         pool = program_pool[
             (program_pool['connection_type'] == 'need') &
             (program_pool['cohort'].apply(normalize_str) == u_cohort)
@@ -500,7 +502,6 @@ def leave_group(user_id=None):
     upload_csv(df)
     return jsonify({"success": True})
 
-
 @app.route('/api/feedback', methods=['POST'])
 @api_wrapper
 def submit_feedback():
@@ -523,10 +524,6 @@ def get_admin_data():
     pending_count = total - matched_count
     match_rate = f"{(matched_count / total * 100):.1f}%" if total > 0 else "0.0%"
 
-    # --- NEW METRICS ---
-    unpaired_need = len(df[(df['matched'] == False) & (df['connection_type'] == 'need')])
-    unpaired_offer = len(df[(df['matched'] == False) & (df['connection_type'] == 'offer')])
-
     # Median Match Speed Calculation
     matched_df = df[df['matched'] == True].dropna(subset=['timestamp', 'matched_timestamp']).copy()
     if not matched_df.empty:
@@ -544,11 +541,14 @@ def get_admin_data():
         match_speed = "N/A"
 
     # Overall Tool Rating Calculation
-    df_feedback = download_csv(FEEDBACK_OBJECT_KEY)
-    if not df_feedback.empty and 'rating' in df_feedback.columns:
-        avg_rating = pd.to_numeric(df_feedback['rating'], errors='coerce').mean()
-        tool_rating = f"{avg_rating:.1f} / 5.0" if pd.notna(avg_rating) else "N/A"
-    else:
+    try:
+        df_feedback = download_csv(FEEDBACK_OBJECT_KEY)
+        if not df_feedback.empty and 'rating' in df_feedback.columns:
+            avg_rating = pd.to_numeric(df_feedback['rating'], errors='coerce').mean()
+            tool_rating = f"{avg_rating:.1f} / 5.0" if pd.notna(avg_rating) else "N/A"
+        else:
+            tool_rating = "N/A"
+    except Exception:
         tool_rating = "N/A"
 
     stats = {
@@ -556,10 +556,6 @@ def get_admin_data():
         "matched": matched_count,
         "pending": pending_count,
         "match_rate": match_rate,
-        "offer": len(df[df['connection_type'] == 'offer']),
-        "need": len(df[df['connection_type'] == 'need']),
-        "unpaired_need": unpaired_need,
-        "unpaired_offer": unpaired_offer,
         "match_speed": match_speed,
         "tool_rating": tool_rating
     }
@@ -682,7 +678,6 @@ def submit_peer_session_feedback():
     
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     upload_csv(df, SESSION_FEEDBACK_OBJECT_KEY)
-    
     return jsonify({"success": True})
 
 @app.route('/api/admin/download-session-feedback', methods=['POST'])
@@ -691,7 +686,6 @@ def dl_session_feedback():
     if request.get_json().get('password') != ADMIN_PASSWORD: 
         return jsonify({"error": "Unauthorized"}), 401
     return Response(download_csv(SESSION_FEEDBACK_OBJECT_KEY).to_csv(index=False), mimetype='text/csv')
-
 
 @app.route('/api/leaderboard', methods=['GET'])
 @api_wrapper
