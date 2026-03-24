@@ -142,12 +142,33 @@ const AdminPage = () => {
         {activeTab === 'dashboard' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <h2 style={{ color: colors.primary.berkeleyBlue }}>Overview</h2>
+            
+            {/* UPDATED: Main Analytics Grid */}
             <div style={styles.statsGrid}>
               <div style={styles.statCard}><h3>{data.stats.total}</h3><p>Total Registered</p></div>
               <div style={styles.statCard}><h3>{data.stats.matched}</h3><p>Total Matched</p></div>
               <div style={styles.statCard}><h3>{data.stats.pending}</h3><p>Waiting in Queue</p></div>
               <div style={styles.statCard}><h3>{data.stats.match_rate}</h3><p>Match Rate</p></div>
+              
+              {/* NEW ANALYTICS CARDS */}
+              <div style={{...styles.statCard, borderTop: `4px solid ${colors.secondary.electricBlue}`}}>
+                  <h3 style={{color: colors.secondary.electricBlue}}>{data.stats.tool_rating}</h3>
+                  <p>Overall Tool Rating</p>
+              </div>
+              <div style={{...styles.statCard, borderTop: `4px solid ${colors.primary.iris}`}}>
+                  <h3 style={{color: colors.primary.iris}}>{data.stats.match_speed}</h3>
+                  <p>Median Match Speed</p>
+              </div>
+              <div style={{...styles.statCard, borderTop: `4px solid ${colors.secondary.tomato}`}}>
+                  <h3 style={{color: colors.secondary.tomato}}>{data.stats.unpaired_need}</h3>
+                  <p>Unpaired Needs Support</p>
+              </div>
+              <div style={{...styles.statCard, borderTop: `4px solid ${colors.secondary.gold}`}}>
+                  <h3 style={{color: colors.secondary.gold}}>{data.stats.unpaired_offer}</h3>
+                  <p>Unpaired Volunteers</p>
+              </div>
             </div>
+
             <div style={{ marginTop: '30px', background: 'white', padding: '20px', borderRadius: '10px' }}>
               <h3>Community Health</h3>
               <p>Offering Support: <strong>{data.stats.offer}</strong> | Needing Support: <strong>{data.stats.need}</strong></p>
@@ -179,7 +200,7 @@ const AdminPage = () => {
                     <th>Cohort</th>
                     <th>Module</th>
                     <th>Connection Type</th>
-                    <th>Time Zone</th>
+                    <th>Time Zone</th> {/* NEW COLUMN HEADER */}
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -193,7 +214,7 @@ const AdminPage = () => {
                       <td>{u.cohort}</td>
                       <td>{u.topic_module}</td>
                       <td><strong>{u.connection_type.toUpperCase()}</strong></td>
-                      <td>{u.timezone || 'N/A'}</td>
+                      <td>{u.timezone || 'N/A'}</td> {/* NEW COLUMN DATA */}
                       <td>
                         <button style={styles.btnAction} onClick={() => handleAction('/api/admin/random-pair', { user_id: u.id })}>Auto-Pair</button>
                       </td>
@@ -219,8 +240,13 @@ const AdminPage = () => {
                       {groups[gid].map(member => (
                         <div key={member.id} style={{ marginBottom: '10px', paddingBottom: '10px', borderBottom: '1px dashed #eee' }}>
                           <strong>{member.name}</strong> <span style={styles.badge}>{member.program}</span><br/>
+                          
+                          {/* UPDATED MEMBER META-DATA */}
                           <span style={{ fontSize: '0.85rem', color: '#555' }}>📧 {member.email} | 📱 {member.phone}</span><br/>
-                          <span style={{ fontSize: '0.85rem', color: colors.primary.iris }}>Role: {member.connection_type.toUpperCase()} | Prefers: {member.meeting_preference || 'All'}</span>
+                          <span style={{ fontSize: '0.85rem', color: colors.primary.iris }}>
+                              Role: <strong>{member.connection_type.toUpperCase()}</strong> | Prefers: <strong>{member.meeting_preference || 'All'}</strong>
+                          </span>
+                          
                         </div>
                       ))}
                       <button style={styles.btnUnpair} onClick={() => setModal({
@@ -295,6 +321,8 @@ const styles = {
   btnConfirm: { padding: '8px 20px', background: colors.primary.iris, color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight:'bold' },
   btnCancel: { padding: '8px 20px', background: '#ccc', color: '#333', border: 'none', borderRadius: '5px', cursor: 'pointer' },
   badge: { background: '#fff3e0', color: '#e65100', padding: '3px 8px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' },
+  
+  // NEW PAGINATION STYLES
   paginationContainer: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginTop: '30px', padding: '10px' },
   pageBtn: { padding: '8px 16px', background: 'white', border: `1px solid ${colors.primary.iris}`, color: colors.primary.iris, borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' },
   pageBtnDisabled: { padding: '8px 16px', background: '#f5f5f5', border: '1px solid #ddd', color: '#aaa', borderRadius: '5px', cursor: 'not-allowed' },
