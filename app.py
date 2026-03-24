@@ -232,7 +232,6 @@ def download_csv(key=CSV_OBJECT_KEY):
                 if col not in df.columns:
                     df[col] = False if col in ['matched', 'match_attempted'] else ''
             
-            # The Float Bug Fix + Timezone addition
             str_cols = ['id', 'name', 'phone', 'email', 'country', 'program', 'cohort', 
                        'topic_module', 'availability', 'connection_type', 'group_id', 
                        'open_to_global_pairing', 'preferred_study_setup', 'kind_of_support', 
@@ -271,7 +270,7 @@ def availability_match(a1, a2):
 @app.route('/', methods=['GET'])
 @api_wrapper
 def health():
-    return jsonify({"status": "active", "version": "CA_Modular_Upgraded"})
+    return jsonify({"status": "active", "version": "CA_Modular_Admin_Upgraded"})
 
 @app.route('/api/register', methods=['POST'])
 @api_wrapper
@@ -435,7 +434,6 @@ def match():
             updated = True
             
     elif user['connection_type'] == 'offer':
-        # NEW VOLUNTEER LOGIC: Global match strictly on program & cohort, grab up to capacity
         capacity = int(float(user.get('volunteer_capacity', 3))) if pd.notna(user.get('volunteer_capacity')) and user.get('volunteer_capacity') != '' else 3
         pool = program_pool[
             (program_pool['connection_type'] == 'need') &
@@ -525,13 +523,45 @@ def get_admin_data():
     pending_count = total - matched_count
     match_rate = f"{(matched_count / total * 100):.1f}%" if total > 0 else "0.0%"
 
+    # --- NEW METRICS ---
+    unpaired_need = len(df[(df['matched'] == False) & (df['connection_type'] == 'need')])
+    unpaired_offer = len(df[(df['matched'] == False) & (df['connection_type'] == 'offer')])
+
+    # Median Match Speed Calculation
+    matched_df = df[df['matched'] == True].dropna(subset=['timestamp', 'matched_timestamp']).copy()
+    if not matched_df.empty:
+        matched_df['ts'] = pd.to_datetime(matched_df['timestamp'], errors='coerce', utc=True)
+        matched_df['mts'] = pd.to_datetime(matched_df['matched_timestamp'], errors='coerce', utc=True)
+        wait_times = (matched_df['mts'] - matched_df['ts']).dt.total_seconds() / 3600
+        med_wait = wait_times[wait_times >= 0].median()
+        if pd.isna(med_wait):
+            match_speed = "N/A"
+        elif med_wait < 1:
+            match_speed = f"{int(med_wait * 60)} Mins"
+        else:
+            match_speed = f"{med_wait:.1f} Hrs"
+    else:
+        match_speed = "N/A"
+
+    # Overall Tool Rating Calculation
+    df_feedback = download_csv(FEEDBACK_OBJECT_KEY)
+    if not df_feedback.empty and 'rating' in df_feedback.columns:
+        avg_rating = pd.to_numeric(df_feedback['rating'], errors='coerce').mean()
+        tool_rating = f"{avg_rating:.1f} / 5.0" if pd.notna(avg_rating) else "N/A"
+    else:
+        tool_rating = "N/A"
+
     stats = {
         "total": total,
         "matched": matched_count,
         "pending": pending_count,
         "match_rate": match_rate,
         "offer": len(df[df['connection_type'] == 'offer']),
-        "need": len(df[df['connection_type'] == 'need'])
+        "need": len(df[df['connection_type'] == 'need']),
+        "unpaired_need": unpaired_need,
+        "unpaired_offer": unpaired_offer,
+        "match_speed": match_speed,
+        "tool_rating": tool_rating
     }
     return jsonify({"success": True, "stats": stats, "learners": df.fillna("").to_dict('records')})
 
@@ -652,6 +682,7 @@ def submit_peer_session_feedback():
     
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     upload_csv(df, SESSION_FEEDBACK_OBJECT_KEY)
+    
     return jsonify({"success": True})
 
 @app.route('/api/admin/download-session-feedback', methods=['POST'])
@@ -660,6 +691,7 @@ def dl_session_feedback():
     if request.get_json().get('password') != ADMIN_PASSWORD: 
         return jsonify({"error": "Unauthorized"}), 401
     return Response(download_csv(SESSION_FEEDBACK_OBJECT_KEY).to_csv(index=False), mimetype='text/csv')
+
 
 @app.route('/api/leaderboard', methods=['GET'])
 @api_wrapper
