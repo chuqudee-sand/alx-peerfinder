@@ -16,11 +16,13 @@ const StatusPage = () => {
   const [loadingMatch, setLoadingMatch] = useState(false);
   const [matchMessage, setMatchMessage] = useState(null); 
   
+  // --- UNPAIR & FEEDBACK STATE ---
   const [showUnpairModal, setShowUnpairModal] = useState(false);
   const [unpairReason, setUnpairReason] = useState("");
   const [unpairAction, setUnpairAction] = useState('requeue');
   const [loadingUnpair, setLoadingUnpair] = useState(false); 
   
+  // Custom Feedback Modal State
   const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, title: '', message: '', type: 'success', redirect: null });
   
   const isDuplicate = location.state?.isDuplicate;
@@ -116,17 +118,19 @@ const StatusPage = () => {
                   <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', fontSize: '1.1rem' }}>{peer.name}</p>
                   <p style={{ margin: '0 0 5px 0', color: '#555', fontSize: '0.9rem' }}>📧 {peer.email}</p>
                   <p style={{ margin: '0 0 10px 0', color: '#555', fontSize: '0.9rem' }}>📌 Prefers: <strong>{peer.meeting_preference || 'All'}</strong></p>
+                  
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                       <a href={`https://wa.me/${peer.phone?.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" style={{ background: '#25D366', color: 'white', padding: '8px 15px', borderRadius: '5px', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}>💬 WhatsApp</a>
                       <a href={`https://t.me/+${peer.phone?.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" style={{ background: '#0088cc', color: 'white', padding: '8px 15px', borderRadius: '5px', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}>✈️ Telegram</a>
                   </div>
                 </div>
               ))}
-              
+
+              {/* NEW INSTANT VIDEO LINK COMPONENT */}
               <div style={{ marginTop: '20px', background: '#e3f2fd', padding: '20px', borderRadius: '10px', textAlign: 'center', border: '1px solid #b8daff' }}>
                   <h4 style={{ color: '#0056b3', margin: '0 0 10px 0' }}>🎥 Group Video Room</h4>
                   <p style={{ color: '#004085', fontSize: '0.9rem', marginBottom: '15px' }}>Click below to instantly join a free video call with your group.</p>
-                  <a href={`https://meet.jit.si/ALX-PeerFinder-${status.user?.real_id || status.group[0]?.name.replace(/\\s/g,'')}`} target="_blank" rel="noreferrer" style={{ background: '#0056b3', color: 'white', padding: '12px 25px', borderRadius: '30px', textDecoration: 'none', fontWeight: 'bold', fontSize: '1rem', display: 'inline-block' }}>Join Video Meeting Now</a>
+                  <a href={`https://meet.jit.si/ALX-PeerFinder-${status.user?.real_id || status.group[0]?.name.replace(/\s/g,'')}`} target="_blank" rel="noreferrer" style={{ background: '#0056b3', color: 'white', padding: '12px 25px', borderRadius: '30px', textDecoration: 'none', fontWeight: 'bold', fontSize: '1rem', display: 'inline-block' }}>Join Video Meeting Now</a>
               </div>
 
               <div style={{ marginTop: '30px', textAlign: 'center' }}>
@@ -237,10 +241,11 @@ const styles = {
   findBtn: { width: '100%', padding: '15px', background: colors.primary.iris, color: 'white', border: 'none', borderRadius: '30px', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer' },
   noticeBox: { marginTop: '15px', padding: '10px', background: '#fff3cd', color: '#856404', border: '1px solid #ffeeba', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 'bold' },
   homeBtn: { marginTop: '30px', padding: '12px 24px', background: 'transparent', border: `2px solid ${colors.primary.iris}`, color: colors.primary.iris, borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s' },
-  unpairBtn: { padding: '10px 20px', background: 'transparent', border: `1px solid ${colors.secondary.tomato}`, color: colors.secondary.tomato, borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold' },
+  retryBtn: { marginTop: '30px', padding: '12px 24px', background: 'white', border: 'none', color: colors.primary.berkeleyBlue, borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer' },
   modalOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 43, 86, 0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
   modalContent: { background: 'white', padding: '2rem', borderRadius: '15px', width: '90%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' },
-  modalOkBtn: { padding: '10px 30px', background: colors.primary.iris, color: 'white', border: 'none', borderRadius: '20px', fontWeight: 'bold', cursor: 'pointer' }
+  modalOkBtn: { padding: '12px 30px', background: colors.primary.iris, color: 'white', border: 'none', borderRadius: '20px', fontWeight: 'bold', cursor: 'pointer' },
+  unpairBtn: { padding: '10px 20px', background: 'transparent', border: `1px solid ${colors.secondary.tomato}`, color: colors.secondary.tomato, borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold' },
 };
 
 export default StatusPage;
