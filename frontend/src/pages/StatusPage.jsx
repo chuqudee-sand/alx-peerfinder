@@ -13,16 +13,15 @@ const StatusPage = () => {
   
   const [status, setStatus] = useState(null);
   const [error, setError] = useState(null);
+  const [loadingData, setLoadingData] = useState(true); // NEW: Page loading state!
   const [loadingMatch, setLoadingMatch] = useState(false);
   const [matchMessage, setMatchMessage] = useState(null); 
   
-  // --- UNPAIR & FEEDBACK STATE ---
   const [showUnpairModal, setShowUnpairModal] = useState(false);
   const [unpairReason, setUnpairReason] = useState("");
   const [unpairAction, setUnpairAction] = useState('requeue');
   const [loadingUnpair, setLoadingUnpair] = useState(false); 
   
-  // Custom Feedback Modal State
   const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, title: '', message: '', type: 'success', redirect: null });
   
   const isDuplicate = location.state?.isDuplicate;
@@ -33,6 +32,8 @@ const StatusPage = () => {
       setStatus(res.data);
     } catch (err) {
       setError("User not found.");
+    } finally {
+      setLoadingData(false); // Stop the main page loader
     }
   };
 
@@ -90,7 +91,19 @@ const StatusPage = () => {
   };
 
   if (error) return <div style={styles.error}>{error}</div>;
-  if (!status) return <div style={{...styles.container, justifyContent: 'center'}}><Spinner size="40px" /></div>;
+
+  // NEW ROBUST LOADER: Prevents the blank white screen!
+  if (loadingData || !status) {
+    return (
+      <div style={{...styles.container, justifyContent: 'center', alignItems: 'center'}}>
+        <div style={{ textAlign: 'center' }}>
+          <Spinner size="50px" color={colors.primary.iris} />
+          <h3 style={{ color: colors.primary.berkeleyBlue, marginTop: '20px' }}>Searching... please wait...</h3>
+          <p style={{ color: '#666' }}>Fetching your latest profile data.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.container}>
@@ -126,7 +139,6 @@ const StatusPage = () => {
                 </div>
               ))}
 
-              {/* NEW INSTANT VIDEO LINK COMPONENT */}
               <div style={{ marginTop: '20px', background: '#e3f2fd', padding: '20px', borderRadius: '10px', textAlign: 'center', border: '1px solid #b8daff' }}>
                   <h4 style={{ color: '#0056b3', margin: '0 0 10px 0' }}>🎥 Group Video Room</h4>
                   <p style={{ color: '#004085', fontSize: '0.9rem', marginBottom: '15px' }}>Click below to instantly join a free video call with your group.</p>
@@ -144,7 +156,7 @@ const StatusPage = () => {
               <p style={{ color: '#555', fontSize: '1.1rem', marginBottom: '20px' }}>You are currently in the queue. We will email you as soon as a match is found.</p>
               
               <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleMatch} disabled={loadingMatch} style={styles.findBtn}>
-                {loadingMatch ? <div style={{display:'flex', justifyContent:'center', gap:'10px'}}><Spinner size="20px" /> Searching...</div> : "Find Match Now 🔍"}
+                {loadingMatch ? <div style={{display:'flex', justifyContent:'center', gap:'10px'}}><Spinner size="20px" color="white" /> Searching...</div> : "Find Match Now 🔍"}
               </motion.button>
               
               {matchMessage && (
