@@ -153,7 +153,7 @@ const StatusPage = () => {
           ) : (
             <div style={{ textAlign: 'center' }}>
               <div style={styles.pendingBadge}>⏳ IN QUEUE</div>
-              <p style={{ color: '#555', fontSize: '1.1rem', marginBottom: '20px' }}>You are currently in the queue. We will email you as soon as a match is found. Please click on the button below to search one more time before the email arrives</p>
+              <p style={{ color: '#555', fontSize: '1.1rem', marginBottom: '20px' }}>You are currently in the queue. We will email you as soon as a match is found. Please click on the button below to search one more time before the email arrives.👍</p>
               
               <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleMatch} disabled={loadingMatch} style={styles.findBtn}>
                 {loadingMatch ? <div style={{display:'flex', justifyContent:'center', gap:'10px'}}><Spinner size="20px" color="white" /> Searching...</div> : "Find Match Now 🔍"}
