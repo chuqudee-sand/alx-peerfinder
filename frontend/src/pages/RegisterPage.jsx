@@ -280,6 +280,7 @@ const RegisterPage = () => {
                     <select style={styles.select} name="preferred_study_setup" onChange={handleChange} required>
                         <option value="2">Pair (2 people)</option>
                         <option value="3">Group of 3</option>
+                        <option value="5">Group of 5</option>
                     </select>
                 )}
              </div>
