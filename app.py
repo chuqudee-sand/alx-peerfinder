@@ -512,6 +512,7 @@ def submit_feedback():
     upload_csv(df, FEEDBACK_OBJECT_KEY)
     return jsonify({"success": True})
 
+
 @app.route('/api/admin/data', methods=['POST'])
 @api_wrapper
 def get_admin_data():
@@ -561,6 +562,7 @@ def get_admin_data():
     }
     return jsonify({"success": True, "stats": stats, "learners": df.fillna("").to_dict('records')})
 
+
 @app.route('/api/admin/random-pair', methods=['POST'])
 @api_wrapper
 def random_pair():
@@ -599,6 +601,7 @@ def random_pair():
     notify_group_match(df, gid)
     return jsonify({"success": True, "message": "Matched!"})
 
+
 @app.route('/api/admin/manual-pair', methods=['POST'])
 @api_wrapper
 def manual_pair():
@@ -624,11 +627,13 @@ def manual_pair():
     notify_group_match(df, gid)
     return jsonify({"success": True, "message": "Paired!"})
 
+
 @app.route('/api/admin/download', methods=['POST'])
 @api_wrapper
 def admin_dl():
     if request.get_json().get('password') != ADMIN_PASSWORD: return jsonify({"error": "Unauthorized"}), 401
     return Response(download_csv().to_csv(index=False), mimetype='text/csv')
+
 
 @app.route('/api/admin/download-feedback', methods=['POST'])
 @api_wrapper
@@ -636,10 +641,12 @@ def dl_feedback():
     if request.get_json().get('password') != ADMIN_PASSWORD: return jsonify({"error": "Unauthorized"}), 401
     return Response(download_csv(FEEDBACK_OBJECT_KEY).to_csv(index=False), mimetype='text/csv')
 
+
 @app.route('/api/unpair/<user_id>', methods=['POST'])
 @api_wrapper
 def admin_unpair(user_id):
     return leave_group(user_id=user_id)
+
 
 @app.route('/api/peer-feedback', methods=['POST'])
 @api_wrapper
@@ -680,12 +687,14 @@ def submit_peer_session_feedback():
     upload_csv(df, SESSION_FEEDBACK_OBJECT_KEY)
     return jsonify({"success": True})
 
+
 @app.route('/api/admin/download-session-feedback', methods=['POST'])
 @api_wrapper
 def dl_session_feedback():
     if request.get_json().get('password') != ADMIN_PASSWORD: 
         return jsonify({"error": "Unauthorized"}), 401
     return Response(download_csv(SESSION_FEEDBACK_OBJECT_KEY).to_csv(index=False), mimetype='text/csv')
+
 
 @app.route('/api/leaderboard', methods=['GET'])
 @api_wrapper
