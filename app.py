@@ -696,11 +696,19 @@ def get_leaderboard():
         
     df_users = download_csv(CSV_OBJECT_KEY)
     
+    # Clean the emails
     df_feedback['peer_email'] = df_feedback['peer_email'].astype(str).str.strip().str.lower()
+    df_feedback['email'] = df_feedback['email'].astype(str).str.strip().str.lower()
+    
     df_feedback['peer_rating'] = pd.to_numeric(df_feedback['peer_rating'], errors='coerce').fillna(0)
     df_feedback['session_rating'] = pd.to_numeric(df_feedback['session_rating'], errors='coerce').fillna(0)
     
-    valid_feedback = df_feedback[(df_feedback['peer_email'] != '') & (df_feedback['role'] == 'HelpSeeker')].copy()
+    # THE FIX: Allow ALL roles, but explicitly block learners from rating themselves!
+    valid_feedback = df_feedback[
+        (df_feedback['peer_email'] != '') & 
+        (df_feedback['peer_email'] != 'nan') &
+        (df_feedback['email'] != df_feedback['peer_email']) # Anti-cheating safeguard
+    ].copy()
     
     def calculate_points(row):
         score = row['peer_rating'] + row['session_rating']
