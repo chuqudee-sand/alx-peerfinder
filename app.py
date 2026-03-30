@@ -41,7 +41,6 @@ FEEDBACK_OBJECT_KEY = 'ca_feedback.csv'
 SESSION_FEEDBACK_OBJECT_KEY = 'ca_session_feedback.csv'
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 
-# === PROGRAM CREDENTIALS ===
 def load_google_token(env_var_name):
     token_str = os.environ.get(env_var_name)
     if not token_str: return None
@@ -53,7 +52,6 @@ PROGRAM_CREDENTIALS = {
     'AiCE': { 'email': os.environ.get('AICE_EMAIL', 'aice@alxafrica.com'), 'token': load_google_token('AICE_GOOGLE_TOKEN') },
     'PF': { 'email': os.environ.get('PF_EMAIL', 'alxfoundations@alxafrica.com'), 'token': load_google_token('PF_GOOGLE_TOKEN') }
 }
-
 SCOPES = ['https://www.googleapis.com/auth/gmail.send']
 
 def validate_registration(data):
@@ -124,12 +122,13 @@ def notify_group_match(df, group_id):
                 support = str(peer.get('kind_of_support', '')).strip()
                 if not support or support.lower() == 'nan': support = "Study Buddy / Accountability"
                 meet_pref = str(peer.get('meeting_preference', 'All'))
+                role_label = "Volunteer" if peer['connection_type'] == 'offer' else "Peer" if peer['connection_type'] == 'need' else "Study Buddy"
                     
                 peer_info_html += f"""
                 <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e0e0e0;">
                     <strong style="font-size: 18px; color: #091F40;">{peer['name']}</strong><br/>
                     <span style="color: #555;">📧 {peer['email']}</span><br/>
-                    <span style="color: #555;">🎯 Role: {support}</span><br/>
+                    <span style="color: #555;">🎯 Role: <strong>{role_label}</strong> ({support})</span><br/>
                     <span style="color: #555;">📌 Prefers to meet via: <strong>{meet_pref}</strong></span><br/>
                     <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
                         <a href="{wa_link}" style="background-color: #25D366; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px;">WhatsApp</a>
@@ -137,10 +136,28 @@ def notify_group_match(df, group_id):
                     </div>
                 </div>"""
         
+        # CUSTOM EMAILS BASED ON ROLE
+        is_volunteer = current_user['connection_type'] == 'offer'
+        is_needer = current_user['connection_type'] == 'need'
+        
+        if is_volunteer:
+            cap = int(float(current_user.get('volunteer_capacity', 3))) if pd.notna(current_user.get('volunteer_capacity')) and current_user.get('volunteer_capacity') not in ['', 'None'] else 3
+            current_needers = len(grp[grp['connection_type'] == 'need'])
+            remaining = cap - current_needers
+            
+            custom_msg = f"Thanks so much, <strong>{current_user['name']}</strong>, for stepping up to support your peers in need. You are a true champion and we will not forget you for this!<br/><br/>"
+            if remaining > 0:
+                custom_msg += f"You requested to support {cap} peers, and you have currently been matched with {current_needers}. Over time, {remaining} more peer(s) will be added to your group as they register and search for help."
+            else:
+                custom_msg += f"Your group is now fully matched with all {cap} peers you requested to support!"
+        elif is_needer:
+            custom_msg = f"Hi <strong>{current_user['name']}</strong>,<br/><br/>Great news! You have been successfully paired with a Volunteer who is ready to support you (and potentially other peers)."
+        else:
+            custom_msg = f"Hi <strong>{current_user['name']}</strong>,<br/><br/>You have been successfully matched! Here is the information for your peer(s):"
+
         body = f"""
         <h2 style="color: #091F40; margin-top: 0;">It's a Match! 🎉</h2>
-        Hi <strong>{current_user['name']}</strong>,<br/><br/>
-        You have been successfully matched! Here is the information for your peer(s):<br/><br/>
+        {custom_msg}<br/><br/>
         {peer_info_html}
         <br/>
         <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #b8daff; text-align: center;">
@@ -153,7 +170,6 @@ def notify_group_match(df, group_id):
             <strong style="color: #856404; font-size: 16px;">⚠️ Please Read Carefully</strong><br/><br/>
             <ul style="margin-bottom: 0; padding-left: 20px; color: #856404;">
                 <li>Please show up for your partner or group — ghosting is discouraged and can affect their progress.</li>
-                <li>Only fill this form with accurate details. If you've entered incorrect information, kindly unpair yourself.</li>
                 <li>If you no longer wish to participate, let your partner/group know first before unpairing.</li>
             </ul>
         </div><br/>Best regards,<br/><strong>Peer Finder Team</strong>"""
@@ -161,12 +177,7 @@ def notify_group_match(df, group_id):
         except Exception: pass
 
 REQUIRED_COLUMNS = [
-    'id', 'name', 'phone', 'email', 'country', 'language', 'program', 'cohort', 
-    'topic_module', 'learning_preferences', 'availability', 
-    'preferred_study_setup', 'kind_of_support', 'connection_type',
-    'open_to_global_pairing', 'timestamp', 'matched', 'group_id', 
-    'unpair_reason', 'matched_timestamp', 'match_attempted',
-    'volunteer_capacity', 'meeting_preference', 'timezone'
+    'id', 'name', 'phone', 'email', 'country', 'language', 'program', 'cohort', 'topic_module', 'learning_preferences', 'availability', 'preferred_study_setup', 'kind_of_support', 'connection_type', 'open_to_global_pairing', 'timestamp', 'matched', 'group_id', 'unpair_reason', 'matched_timestamp', 'match_attempted', 'volunteer_capacity', 'meeting_preference', 'timezone'
 ]
 
 def clean_boolean(val):
@@ -206,16 +217,13 @@ def availability_match(a1, a2):
     if not a1_clean or not a2_clean: return False
     return (a1_clean == 'flexible' or a2_clean == 'flexible' or a1_clean == a2_clean)
 
-# === THE SMART MATCHING ENGINE ===
+# === THE SMART MATCHING ENGINE (UPGRADED) ===
 def perform_matching(df, user_id):
-    """Core matching logic encapsulated so it can be used manually or in the admin auto-loop"""
     user_rows = df[df['id'] == user_id]
     if user_rows.empty: return df, False, None
     
     idx = user_rows.index[0]
     user = user_rows.iloc[0]
-    
-    # Mark as attempted
     df.at[idx, 'match_attempted'] = True
     
     if bool(user['matched']): return df, False, None
@@ -250,7 +258,6 @@ def perform_matching(df, user_id):
             updated = True
             
     elif user['connection_type'] == 'offer':
-        # FIXED: Sweeps up to the full capacity of needers!
         capacity = int(float(user.get('volunteer_capacity', 3))) if pd.notna(user.get('volunteer_capacity')) and user.get('volunteer_capacity') not in ['', 'None'] else 3
         pool = program_pool[(program_pool['connection_type'] == 'need') & (program_pool['cohort'].apply(normalize_str) == u_cohort)].copy()
         
@@ -264,39 +271,53 @@ def perform_matching(df, user_id):
             updated = True
             
     elif user['connection_type'] == 'need':
-        # FIXED: If a needer searches, it grabs ONE volunteer, then vacuums up MORE needers to fill that volunteer's capacity!
-        pool = program_pool[program_pool['connection_type'] == 'offer']
-        pool = pool[(pool['cohort'].apply(normalize_str) == u_cohort)].copy()
+        # 1. Search for an EXISTING matched volunteer who still has open capacity!
+        active_vols = df[(df['connection_type'] == 'offer') & (df['program'].apply(normalize_str) == u_program) & (df['cohort'].apply(normalize_str) == u_cohort) & (df['matched'] == True)]
+        joined_existing = False
         
-        if not pool.empty:
-            volunteer_idx = pool.index[0]
-            volunteer = pool.iloc[0]
-            capacity = int(float(volunteer.get('volunteer_capacity', 3))) if pd.notna(volunteer.get('volunteer_capacity')) and volunteer.get('volunteer_capacity') not in ['', 'None'] else 3
+        for v_idx, vol in active_vols.iterrows():
+            v_cap = int(float(vol.get('volunteer_capacity', 3))) if pd.notna(vol.get('volunteer_capacity')) and vol.get('volunteer_capacity') not in ['', 'None'] else 3
+            v_group_id = vol['group_id']
+            if not v_group_id: continue
             
-            # Find OTHER needers to fill out the volunteer's group capacity!
-            other_needers_pool = program_pool[
-                (program_pool['connection_type'] == 'need') & 
-                (program_pool['cohort'].apply(normalize_str) == u_cohort) & 
-                (program_pool['id'] != user_id)
-            ].copy()
-            
-            matched_other_needers = other_needers_pool.head(capacity - 1)
-            all_idx = [idx, volunteer_idx] + matched_other_needers.index.tolist()
-            
-            df.loc[all_idx, 'matched'] = True
-            df.loc[all_idx, 'group_id'] = gid
-            df.loc[all_idx, 'matched_timestamp'] = iso
-            df.loc[all_idx, 'unpair_reason'] = ''
-            updated = True
+            current_needers = len(df[(df['group_id'] == v_group_id) & (df['connection_type'] == 'need')])
+            if current_needers < v_cap:
+                # Boom! We found an open group. Slide the new needer in.
+                df.at[idx, 'matched'] = True
+                df.at[idx, 'group_id'] = v_group_id
+                df.at[idx, 'matched_timestamp'] = iso
+                df.at[idx, 'unpair_reason'] = ''
+                updated = True
+                gid = v_group_id
+                joined_existing = True
+                break
+                
+        # 2. If no open groups exist, search for a brand NEW unmatched volunteer
+        if not joined_existing:
+            pool = program_pool[(program_pool['connection_type'] == 'offer') & (program_pool['cohort'].apply(normalize_str) == u_cohort)].copy()
+            if not pool.empty:
+                volunteer_idx = pool.index[0]
+                volunteer = pool.iloc[0]
+                v_cap = int(float(volunteer.get('volunteer_capacity', 3))) if pd.notna(volunteer.get('volunteer_capacity')) and volunteer.get('volunteer_capacity') not in ['', 'None'] else 3
+                
+                # Vacuum up any OTHER unmatched needers while we are at it
+                other_needers = program_pool[(program_pool['connection_type'] == 'need') & (program_pool['cohort'].apply(normalize_str) == u_cohort) & (program_pool['id'] != user_id)].copy()
+                matched_other_needers = other_needers.head(v_cap - 1)
+                
+                all_idx = [idx, volunteer_idx] + matched_other_needers.index.tolist()
+                df.loc[all_idx, 'matched'] = True
+                df.loc[all_idx, 'group_id'] = gid
+                df.loc[all_idx, 'matched_timestamp'] = iso
+                df.loc[all_idx, 'unpair_reason'] = ''
+                updated = True
 
     return df, updated, gid
-
 
 # === ROUTES ===
 
 @app.route('/', methods=['GET'])
 @api_wrapper
-def health(): return jsonify({"status": "active", "version": "CA_Modular_Admin_Charts_v2"})
+def health(): return jsonify({"status": "active", "version": "CA_Modular_SmartVacuum"})
 
 @app.route('/api/register', methods=['POST'])
 @api_wrapper
@@ -314,7 +335,7 @@ def register():
     
     existing_mask = ((df['email'] == email) | (df['phone'] == phone)) & (df['connection_type'] == data['connection_type'])
     if not df[existing_mask].empty:
-        idx = df[existing_mask].index[0]
+        idx = existing_mask.idxmax()
         existing = df.loc[idx]
         if bool(existing['matched']): return jsonify({"success": False, "is_duplicate": True, "user_id": str(existing['id']), "already_matched": True})
         else:
@@ -355,7 +376,7 @@ def register():
     wait_body = f"""<h2 style="color: #091F40; margin-top: 0;">You're in Queue! ⏳</h2>
     Hi <strong>{data['name']}</strong>,<br/><br/>Your request is currently in the queue.<br/>
     As soon as a suitable peer or group is available, you'll be matched and notified via email.<br/><br/>
-    You can check your status anytime on the PeerFinder app using your Email Address or your Unique ID.<br/>
+    You can check your status anytime on the PeerFinder app using your Email Address.<br/>
     Best regards,<br/><strong>Peer Finder Team</strong>"""
     send_email(email, "PeerFinder - Waiting to Be Matched ⏳", wait_body, data['program'], is_html=True)
     return jsonify({"success": True, "user_id": new_id})
@@ -369,7 +390,15 @@ def status(identifier):
     if user_rows.empty: return jsonify({"error": "Not found"}), 404
         
     u = user_rows.iloc[0]
-    res = { "matched": bool(u['matched']), "user": {"name": u['name'], "program": u.get('program', ''), "cohort": u['cohort']}, "real_id": str(u['id']) }
+    res = { 
+        "matched": bool(u['matched']), 
+        "user": {
+            "name": u['name'], "program": u.get('program', ''), "cohort": u['cohort'],
+            "connection_type": str(u.get('connection_type', '')),
+            "volunteer_capacity": str(u.get('volunteer_capacity', ''))
+        }, 
+        "real_id": str(u['id']) 
+    }
     
     if bool(u['matched']) and u['group_id']:
         grp = df[df['group_id'] == u['group_id']]
@@ -384,7 +413,7 @@ def match():
     df = download_csv()
     
     df, updated, gid = perform_matching(df, user_id)
-    upload_csv(df) # Always upload, even if updated=False, to save 'match_attempted = True'
+    upload_csv(df)
     
     if updated:
         notify_group_match(df, gid)
@@ -396,11 +425,9 @@ def match():
         
     return jsonify({'matched': False})
 
-
 @app.route('/api/admin/auto-match-queue', methods=['POST'])
 @api_wrapper
 def auto_match_queue():
-    """NEW ADMIN ENDPOINT: Loops through ALL unattempted learners and pairs them if possible"""
     data = request.get_json()
     if data.get('password') != ADMIN_PASSWORD: return jsonify({"error": "Unauthorized"}), 401
     
@@ -411,26 +438,17 @@ def auto_match_queue():
         return jsonify({"success": True, "message": "Queue is completely clean! No unattempted learners found."})
         
     groups_formed = []
-    
     for uid in unattempted['id'].tolist():
-        # Double check in case they got paired by a previous loop iteration
         current_check = df.loc[df['id'] == uid]
-        if not current_check.empty and bool(current_check.iloc[0]['matched']):
-            continue
-            
+        if not current_check.empty and bool(current_check.iloc[0]['matched']): continue
         df, updated, gid = perform_matching(df, uid)
-        if updated:
-            groups_formed.append(gid)
+        if updated: groups_formed.append(gid)
             
-    upload_csv(df) # Save the massive sweep
-    
-    # Send emails for all newly created groups
+    upload_csv(df)
     unique_groups = set(groups_formed)
-    for gid in unique_groups:
-        notify_group_match(df, gid)
+    for gid in unique_groups: notify_group_match(df, gid)
         
-    return jsonify({"success": True, "message": f"Successfully processed the queue. Formed {len(unique_groups)} new groups!"})
-
+    return jsonify({"success": True, "message": f"Successfully processed the queue. Updated {len(unique_groups)} groups!"})
 
 @app.route('/api/leave-group', methods=['POST'])
 @api_wrapper
