@@ -223,7 +223,11 @@ const LandingPage = () => {
                     
                     {!isRestrictedCohort() && (
                       <>
-                        <OptionCard title="Offer Support 💁‍♀️" desc="Volunteer Mode ⭐⭐⭐ " color={colors.primary.springGreen} textColor={colors.primary.berkeleyBlue} onClick={() => handleOptionSelect('offer')} />
+                        {/* THE NEW BOUNCING/BUBBLING EFFECT IS HERE */}
+                        <motion.div animate={{ scale: [1, 1.03, 1] }} transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}>
+                            <OptionCard title="Offer Support 💁‍♀️" desc="Volunteer Mode ⭐⭐⭐ " color={colors.primary.springGreen} textColor={colors.primary.berkeleyBlue} onClick={() => handleOptionSelect('offer')} />
+                        </motion.div>
+                        
                         <OptionCard title="Request Support 🆘" desc="I am Behind / Struggling" color={colors.secondary.tomato} onClick={() => handleOptionSelect('need')} />
                       </>
                     )}
@@ -287,7 +291,7 @@ const InfoBlock = ({ title, text }) => (
 );
 
 const OptionCard = ({ title, desc, color, textColor='white', onClick }) => (
-  <motion.button whileHover={{scale: 1.02}} onClick={onClick} style={{...styles.optionCard, background: color, color: textColor}}>
+  <motion.button whileHover={{scale: 1.02}} onClick={onClick} style={{...styles.optionCard, background: color, color: textColor, width: '100%'}}>
     <div style={{fontWeight: 'bold', fontSize: '1.1rem'}}>{title}</div>
     <div style={{fontSize: '0.9rem', opacity: 0.9}}>{desc}</div>
   </motion.button>
@@ -344,10 +348,3 @@ const styles = {
 };
 
 export default LandingPage;
-
-
-
-
-
-
-
