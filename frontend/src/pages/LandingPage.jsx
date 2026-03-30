@@ -224,7 +224,7 @@ const LandingPage = () => {
                     {!isRestrictedCohort() && (
                       <>
                         {/* THE NEW BOUNCING/BUBBLING EFFECT IS HERE */}
-                        <motion.div animate={{ scale: [1, 1.03, 1] }} transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}>
+                        <motion.div animate={{ scale: [1, 1.03, 1] }} transition={{ repeat: Infinity, duration: 0.8, ease: "easeInOut" }}>
                             <OptionCard title="Offer Support 💁‍♀️" desc="Volunteer Mode ⭐⭐⭐ " color={colors.primary.springGreen} textColor={colors.primary.berkeleyBlue} onClick={() => handleOptionSelect('offer')} />
                         </motion.div>
                         
