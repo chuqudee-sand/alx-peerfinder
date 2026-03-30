@@ -67,6 +67,24 @@ const AdminPage = () => {
     });
   };
 
+  // NEW FEATURE: Force Auto Match
+  const executeAutoMatchQueue = () => {
+    setModal({
+      isOpen: true, type: 'confirm', title: 'Run Auto-Match on Queue?',
+      message: `This will loop through ALL learners who forgot to click "Find Match" and automatically pair them up if a match exists. Do you want to proceed?`,
+      action: async () => {
+        setModal({ ...modal, isOpen: false });
+        setLoading(true);
+        try {
+          const res = await axios.post(`${API_URL}/api/admin/auto-match-queue`, { password });
+          handleResult(res.data.success, res.data.message);
+        } catch (err) { 
+          handleResult(false, err.response?.data?.error || err.message); 
+        } finally { setLoading(false); }
+      }
+    });
+  };
+
   const executePairing = async (endpoint, payload) => {
     try {
       const res = await axios.post(`${API_URL}/api/admin/${endpoint}`, { password, ...payload });
@@ -213,7 +231,17 @@ const AdminPage = () => {
         {activeTab === 'unpaired' && (
           <div>
             <div style={styles.filterBar}>
-              <input placeholder="Search by name or email..." style={styles.filterInput} value={filterText} onChange={e => setFilterText(e.target.value)} />
+              <div style={{display:'flex', gap:'15px', alignItems:'center'}}>
+                <input placeholder="Search by name or email..." style={styles.filterInput} value={filterText} onChange={e => setFilterText(e.target.value)} />
+                {/* NEW FEATURE: AUTO-MATCH BUTTON */}
+                <button 
+                  style={{...styles.btnPrimary, width: 'auto', background: colors.secondary.electricBlue, boxShadow: '0 4px 10px rgba(0,0,0,0.1)'}} 
+                  onClick={executeAutoMatchQueue}
+                >
+                  ⚡ Auto-Match Unattempted
+                </button>
+              </div>
+
               <AnimatePresence>
                 {selectedIds.length >= 2 && (
                   <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} style={styles.fab} onClick={initiateManualPair}>
@@ -225,8 +253,8 @@ const AdminPage = () => {
             <div style={styles.tableWrapper}>
               <table style={styles.table}>
                 <thead>
-                  {/* TIMEZONE RESTORED HERE */}
-                  <tr><th>Select</th><th>Days</th><th>Name</th><th>Country</th><th>Time Zone</th><th>Program</th><th>Cohort</th><th>Request</th><th>Capacity</th><th>Actions</th></tr>
+                  {/* GLOBAL AND SIZE COLUMNS ADDED */}
+                  <tr><th>Select</th><th>Days</th><th>Name</th><th>Country</th><th>Time Zone</th><th>Program</th><th>Cohort</th><th>Request</th><th>Capacity</th><th>Global?</th><th>Size</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
                   {unpairedList.map(l => (
@@ -235,10 +263,12 @@ const AdminPage = () => {
                       <td><span style={styles.badge}>{getDaysSince(l.timestamp)}d</span></td>
                       <td><strong>{l.name}</strong><br/><span style={styles.subText}>{l.email}</span></td>
                       <td>{l.country || '-'}</td>
-                      <td>{l.timezone || '-'}</td> {/* TIMEZONE DATA HERE */}
+                      <td>{l.timezone || '-'}</td>
                       <td>{l.program}</td><td>{l.cohort}</td>
                       <td>{l.connection_type.toUpperCase()}</td>
                       <td>{l.volunteer_capacity !== 'None' ? l.volunteer_capacity : '-'}</td>
+                      <td>{l.open_to_global_pairing || 'No'}</td>
+                      <td>{l.preferred_study_setup || '-'}</td>
                       <td><button style={styles.btnSmall} onClick={() => initiateRandomPair(l.id, l.name)}>Random 🎲</button></td>
                     </tr>
                   ))}
@@ -284,6 +314,12 @@ const AdminPage = () => {
           </div>
         )}
       </div>
+
+      {loading && (
+        <div style={styles.modalOverlay}>
+            <Spinner size="40px" color={colors.primary.iris} />
+        </div>
+      )}
 
       <AnimatePresence>
         {modal.isOpen && (
