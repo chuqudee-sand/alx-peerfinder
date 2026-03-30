@@ -105,6 +105,13 @@ const StatusPage = () => {
     );
   }
 
+  // Custom UI Variables
+  const isVolunteer = status.user?.connection_type === 'offer';
+  const isNeeder = status.user?.connection_type === 'need';
+  const capacity = parseInt(status.user?.volunteer_capacity) || 0;
+  const currentPeersCount = status.group ? status.group.filter(p => p.connection_type === 'need').length : 0;
+  const remaining = capacity - currentPeersCount;
+
   return (
     <div style={styles.container}>
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} style={styles.card}>
@@ -124,13 +131,38 @@ const StatusPage = () => {
           {status.matched ? (
             <div>
               <div style={styles.successBadge}>✓ MATCHED</div>
+
+              {/* VOLUNTEER / NEEDER CUSTOM MESSAGING */}
+              {isVolunteer && (
+                  <div style={styles.customMsgBox}>
+                      <h4 style={{margin: '0 0 5px 0', color: colors.primary.berkeleyBlue}}>🦸‍♂️ Volunteer Status</h4>
+                      {remaining > 0 ? (
+                          <p style={{margin: 0, color: colors.primary.iris}}>
+                              <strong>{currentPeersCount}</strong> peer(s) have been paired with you. <br/>
+                              <strong>{remaining}</strong> more will be added to your group as they request help.
+                          </p>
+                      ) : (
+                          <p style={{margin: 0, color: 'green'}}><strong>Your group is full!</strong> You are supporting {capacity} peers.</p>
+                      )}
+                  </div>
+              )}
+              {isNeeder && (
+                  <div style={{...styles.customMsgBox, background: '#e8f5e9', border: '1px solid #c8e6c9'}}>
+                      <h4 style={{margin: '0 0 5px 0', color: '#2e7d32'}}>🎉 Support Found!</h4>
+                      <p style={{margin: 0, color: '#1b5e20'}}>You have been successfully paired with a Volunteer who is ready to support you!</p>
+                  </div>
+              )}
+
               <h3 style={{ color: colors.primary.berkeleyBlue }}>Your Group Members:</h3>
               
               {status.group.map((peer, idx) => (
                 <div key={idx} style={{ background: 'white', padding: '15px', borderRadius: '10px', marginBottom: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', borderLeft: `5px solid ${colors.secondary.electricBlue}` }}>
                   <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', fontSize: '1.1rem' }}>{peer.name}</p>
                   <p style={{ margin: '0 0 5px 0', color: '#555', fontSize: '0.9rem' }}>📧 {peer.email}</p>
-                  <p style={{ margin: '0 0 10px 0', color: '#555', fontSize: '0.9rem' }}>📌 Prefers: <strong>{peer.meeting_preference || 'All'}</strong></p>
+                  <p style={{ margin: '0 0 10px 0', color: '#555', fontSize: '0.9rem' }}>
+                    Role: <strong>{peer.connection_type === 'offer' ? 'Volunteer ⭐' : peer.connection_type === 'need' ? 'Peer' : 'Study Buddy'}</strong><br/>
+                    Prefers: <strong>{peer.meeting_preference || 'All'}</strong>
+                  </p>
                   
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                       <a href={`https://wa.me/${peer.phone?.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" style={{ background: '#25D366', color: 'white', padding: '8px 15px', borderRadius: '5px', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}>💬 WhatsApp</a>
@@ -250,6 +282,7 @@ const styles = {
   duplicateWarning: { background: '#fff3cd', color: '#856404', padding: '15px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.95rem', border: '1px solid #ffeeba' },
   successBadge: { background: '#d4edda', color: '#155724', padding: '8px 15px', borderRadius: '20px', display: 'inline-block', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '20px' },
   pendingBadge: { background: '#e2e3e5', color: '#383d41', padding: '8px 15px', borderRadius: '20px', display: 'inline-block', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '20px' },
+  customMsgBox: { background: '#f8f9fa', border: '1px solid #ddd', padding: '15px', borderRadius: '8px', marginBottom: '20px' },
   findBtn: { width: '100%', padding: '15px', background: colors.primary.iris, color: 'white', border: 'none', borderRadius: '30px', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer' },
   noticeBox: { marginTop: '15px', padding: '10px', background: '#fff3cd', color: '#856404', border: '1px solid #ffeeba', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 'bold' },
   homeBtn: { marginTop: '30px', padding: '12px 24px', background: 'transparent', border: `2px solid ${colors.primary.iris}`, color: colors.primary.iris, borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s' },
