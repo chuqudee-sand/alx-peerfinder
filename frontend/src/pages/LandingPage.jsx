@@ -148,7 +148,7 @@ const LandingPage = () => {
   };
 
   const isRestrictedCohort = () => {
-    if (selectedProgram?.id === 'VA' && selectedCohort === 'Cohort 15') return true;
+    if (selectedProgram?.id === 'VA' && selectedCohort === 'Cohort 16') return true;
     if (selectedProgram?.id === 'AiCE' && selectedCohort === 'Cohort 19') return true;
     return false;
   };
