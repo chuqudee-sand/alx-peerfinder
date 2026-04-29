@@ -314,9 +314,14 @@ const LandingPage = () => {
       <div style={styles.infoSection}>
         <h3 style={styles.infoTitle}>Collaborate & Grow Together</h3>
         <p style={styles.infoText}>Learning is more rewarding when shared. PeerFinder helps you discover learners who match your goals, so you can support each other and stay motivated.</p>
+        <h3 style={styles.infoTitle}>Tailored Connections</h3>
+        <p style={styles.infoText}>Whether you prefer focused one-on-one partnerships or dynamic groups of three or five, PeerFinder matches you with peers who have similar progress and commitment levels.</p>
       </div>
 
-      <footer style={styles.footer}>© 2026 ALX PeerFinder. Built for the community.</footer>
+      <footer style={styles.footer}>
+        Built for the ALX Community. <br/>
+        © 2026 Peer Finder. All rights reserved.
+      </footer>
 
       {/* FEEDBACK SYSTEM */}
       <button onClick={() => setShowFeedback(true)} style={styles.feedbackBtn}>Rate PeerFinder ⭐</button>
