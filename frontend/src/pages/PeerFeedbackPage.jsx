@@ -11,106 +11,142 @@ const PeerFeedbackPage = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // Form State
+  // Official LF4J Programs
+  const programs = {
+    'VA': ['VA-1', 'VA-2', 'VA-3', 'VA-4', 'VA-5', 'VA-6'],
+    'AiCE': ['AICE-1', 'AICE-2', 'AICE-3', 'AICE-4', 'AICE-5', 'AICE-6', 'AICE-7', 'AICE-8'],
+    'PF': ['PF-1', 'PF-2', 'PF-3', 'PF-4', 'PF-5', 'PF-6', 'PF-7']
+  };
+
   const [formData, setFormData] = useState({
     email: '',
-    peer_email: '', // NEW
     program: '',
-    session_happened: '',
-    no_session_reason: '',
-    rematch_request: '',
+    course: '',
     role: '',
-    peer_rating: 0,
-    session_rating: 0,
-    v_preparedness: '',
-    v_issue_discussed: '',
-    v_confidence: '',
-    v_commit_action: '',
-    v_help_submit: '',
-    v_worked_well: '',
-    v_improve: '',
-    h_respected: '',
-    h_clarified: '',
-    h_outcome: '',
-    h_request_again: '',
-    h_most_helpful: '',
-    h_improve: '',
-    safeguard_issue: '',
-    safeguard_details: ''
+    volunteer_email: '', // Only for HelpSeekers
+    session_happened: '',
+    ghoster_emails: '', 
+    rematch_request: '',
+    overall_rating: 0,
+    progress: '',
+    feedback_details: '' // Consolidated open text for rating <= 3
   });
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleRating = (name, value) => {
-    setFormData({ ...formData, [name]: value });
+  const handleRating = (value) => {
+    setFormData({ ...formData, overall_rating: value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
       await axios.post(`${API_URL}/api/peer-feedback`, formData);
       setSuccess(true);
     } catch (err) {
       console.error(err);
-      setSuccess(true); 
+      alert("There was an issue submitting your feedback.");
     } finally {
       setLoading(false);
     }
   };
 
+  // --- POST-SUBMISSION VIEW ---
   if (success) {
     return (
       <div style={styles.container}>
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} style={styles.card}>
-          <h1 style={{fontSize: '3rem', marginBottom: '10px'}}>🌟</h1>
-          <h2 style={{color: colors.primary.berkeleyBlue}}>Thank You!</h2>
-          <p style={{color: '#555', marginBottom: '30px'}}>Your feedback helps us measure impact and spot our amazing community stars.</p>
-          <button onClick={() => navigate('/')} style={styles.primaryBtn}>Back to Home</button>
+            <h1 style={{fontSize: '3rem', marginBottom: '10px'}}>🌟</h1>
+            <h2 style={{color: colors.primary.berkeleyBlue}}>Feedback Confirmed!</h2>
+            <p style={{color: '#555', marginBottom: '30px', lineHeight: '1.6'}}>
+              Thank you for keeping the PeerFinder ecosystem running smoothly! <br/><br/>
+              {formData.ghoster_emails 
+                ? "The reported no-show learner(s) have been sent a gentle nudge to try again when they have more capacity." 
+                : "Your responses help us measure impact and spot our amazing community stars."}
+            </p>
+            <button onClick={() => navigate('/')} style={styles.primaryBtn}>Back to Home</button>
         </motion.div>
       </div>
     );
   }
 
-  const isSessionYes = formData.session_happened === 'Yes, we both showed up';
-  const isSessionNo = formData.session_happened && formData.session_happened !== 'Yes, we both showed up';
+  // --- LOGIC GATES ---
+  const isSessionYes = formData.session_happened === 'Yes, we all met';
+  const isPartialGhost = formData.session_happened === 'Yes, but my peer/some peers did not attend';
+  const isFullGhost = formData.session_happened === 'No, I was completely ghosted / nobody showed up';
+  const isOtherNo = formData.session_happened === 'No, we had a schedule conflict';
+
+  const showRatings = isSessionYes || isPartialGhost;
+  const showEscalationLink = formData.progress === 'I am still stuck and need more support' || (formData.overall_rating > 0 && formData.overall_rating <= 3);
 
   return (
     <div style={styles.container}>
       <button style={styles.backBtn} onClick={() => navigate('/')}>&larr; Back</button>
       
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={styles.card}>
-        <h2 style={styles.header}>Peer Session Feedback 🌟</h2>
-        <p style={styles.subtext}>Help us spotlight our amazing peers and improve the program.</p>
+        <h2 style={styles.header}>Confirm Connection ✅</h2>
+        <p style={styles.subtext}>A quick check-in to award Legacy Points and track progress.</p>
 
         <form onSubmit={handleSubmit} style={styles.form}>
           
-          {/* --- BASE INFO --- */}
+          {/* --- 1. BASE INFO & ROLE --- */}
           <div style={styles.section}>
             <label style={styles.label}>Your Learning Email Address *</label>
             <input style={styles.input} type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="Your email" />
 
-            {/* NEW: PEER EMAIL FOR LEADERBOARD */}
-            <label style={styles.label}>Your Peer's Learning Email Address <span style={{color:'#888', fontWeight:'normal'}}>(Needed)</span></label>
-            <input style={styles.input} type="email" name="peer_email" value={formData.peer_email} onChange={handleChange} placeholder="Peer's Email" />
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px'}}>
+                <div>
+                    <label style={styles.label}>Your Program *</label>
+                    <select style={styles.select} name="program" value={formData.program} onChange={handleChange} required>
+                    <option value="">--Select--</option>
+                    {Object.keys(programs).map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label style={styles.label}>Short Course *</label>
+                    <select style={styles.select} name="course" value={formData.course} onChange={handleChange} required disabled={!formData.program}>
+                    <option value="">--Select--</option>
+                    {formData.program && programs[formData.program].map(c => <option key={c} value={c.split(':')[0]}>{c.split(':')[0]}</option>)}
+                    </select>
+                </div>
+            </div>
 
-            <label style={styles.label}>Your Program *</label>
-            <select style={styles.select} name="program" value={formData.program} onChange={handleChange} required>
-              <option value="">--Select Program--</option>
-              <option value="VA">Virtual Assistant</option>
-              <option value="AiCE">AI Career Essentials</option>
-              <option value="PF">Professional Foundations</option>
+            <label style={styles.label}>What was your primary role in this session? *</label>
+            <select style={styles.select} name="role" value={formData.role} onChange={handleChange} required>
+              <option value="">--Select Role--</option>
+              <option value="Volunteer">Volunteer (I offered help)</option>
+              <option value="HelpSeeker">Peer (I requested help)</option>
+              <option value="StudyBuddy">Study Buddy (1-on-1 equal collaboration)</option>
+              <option value="GroupMember">Group Member (Team squad)</option>
             </select>
+
+            {/* Smart Email Collection: Only show for Help Seekers */}
+            <AnimatePresence>
+                {formData.role === 'HelpSeeker' && (
+                    <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} exit={{opacity:0, height:0}}>
+                        <label style={{...styles.label, color: colors.primary.iris}}>Your Volunteer's ALX Email Address *</label>
+                        <p style={styles.hint}>Required so we can award them their well-deserved Legacy Points!</p>
+                        <input style={{...styles.input, borderColor: colors.primary.iris}} type="email" name="volunteer_email" value={formData.volunteer_email} onChange={handleChange} required placeholder="Volunteer's Email" />
+                    </motion.div>
+                )}
+            </AnimatePresence>
           </div>
 
-          {/* --- SECTION 1: ATTENDANCE GATE --- */}
-          {formData.email && formData.program && (
+          {/* --- 2. ATTENDANCE GATE --- */}
+          {formData.role && (
             <motion.div initial={{opacity:0}} animate={{opacity:1}} style={styles.section}>
-              <label style={styles.label}>Did the scheduled peer support session take place? *</label>
+              <label style={styles.label}>Did this peer session actually happen? *</label>
               <div style={styles.radioGroup}>
-                {['Yes, we both showed up', 'No, I showed up but the other person did not', 'No, I did not show up', 'We rescheduled'].map(opt => (
+                {[
+                  'Yes, we all met', 
+                  'Yes, but my peer/some peers did not attend', 
+                  'No, we had a schedule conflict', 
+                  'No, I was completely ghosted / nobody showed up'
+                ].map(opt => (
                   <label key={opt} style={styles.radioLabel}>
                     <input type="radio" name="session_happened" value={opt} checked={formData.session_happened === opt} onChange={handleChange} required /> {opt}
                   </label>
@@ -119,107 +155,94 @@ const PeerFeedbackPage = () => {
             </motion.div>
           )}
 
-          {/* --- SECTION 2: NO SESSION (SHORT CLOSE-OUT) --- */}
-          {isSessionNo && (
-            <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} style={styles.section}>
-              <div style={styles.alertBox}>Since the session didn't happen, we just need a quick update.</div>
-              <label style={styles.label}>What happened? *</label>
-              <textarea style={styles.textarea} name="no_session_reason" value={formData.no_session_reason} onChange={handleChange} required placeholder="(e.g., scheduling conflict, ghosting)" />
-              <label style={styles.label}>Would you like to be rematched? *</label>
-              <select style={styles.select} name="rematch_request" value={formData.rematch_request} onChange={handleChange} required>
-                <option value="">--Select--</option><option value="Yes">Yes</option><option value="No">No</option>
-              </select>
-            </motion.div>
-          )}
+          {/* --- 3. NO-SHOW REPORTING & REMATCH --- */}
+          <AnimatePresence>
+              {(isPartialGhost || isFullGhost || isOtherNo) && (
+                <motion.div initial={{height:0, opacity:0}} animate={{height:'auto', opacity:1}} exit={{height:0, opacity:0}} style={{...styles.section, background: '#fff5f5', border: '1px solid #ffcdd2', overflow: 'hidden'}}>
+                  
+                  {(isPartialGhost || isFullGhost) && (
+                      <div style={{marginBottom: '15px'}}>
+                        <label style={{...styles.label, color: '#c62828'}}>Report No-Show Peer(s) *</label>
+                        <p style={{fontSize: '0.85rem', color: '#c62828', marginBottom: '10px', lineHeight: '1.4'}}>
+                            Please enter the email(s) of peers who were absent. <br/>
+                            <em>(💡 Tip: You can copy these from your Status Dashboard or Match Email. Separate multiple emails with a comma.)</em>
+                        </p>
+                        <input style={{...styles.input, borderColor: '#ffcdd2'}} type="text" name="ghoster_emails" value={formData.ghoster_emails} onChange={handleChange} required placeholder="e.g., peer1@alx.com, peer2@alx.com" />
+                      </div>
+                  )}
 
-          {/* --- SECTION 3: FULL FEEDBACK (SESSION HAPPENED) --- */}
-          {isSessionYes && (
+                  <label style={styles.label}>What would you like to do next? *</label>
+                  <select style={styles.select} name="rematch_request" value={formData.rematch_request} onChange={handleChange} required>
+                    <option value="">--Select Action--</option>
+                    <option value="Rematch">Place me back in the queue for a new match</option>
+                    <option value="Delete">Delete my queue request (I will register later)</option>
+                    <option value="None">Keep my current group / Take no action</option>
+                  </select>
+                </motion.div>
+              )}
+          </AnimatePresence>
+
+          {/* --- 4. RATINGS & PROGRESS (IF SESSION HAPPENED) --- */}
+          {showRatings && (
             <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}}>
               
-              {/* RATINGS */}
               <div style={styles.section}>
-                <label style={styles.label}>Rate your Peer(s) *</label>
-                <p style={styles.hint}>1 = Unhelpful/Inactive, 5 = Amazing/Awesome Support Star!</p>
-                <div style={styles.stars}>
-                  {[1,2,3,4,5].map(s => (
-                    <span key={s} onClick={() => handleRating('peer_rating', s)} style={{...styles.star, color: s <= formData.peer_rating ? '#FFD700' : '#ddd'}}>★</span>
-                  ))}
-                </div>
-
-                <label style={styles.label}>Rate the Session Overall *</label>
+                <label style={styles.label}>How would you rate your overall peer session experience? *</label>
                 <p style={styles.hint}>1 = Waste of time, 5 = Highly productive and helpful</p>
                 <div style={styles.stars}>
                   {[1,2,3,4,5].map(s => (
-                    <span key={s} onClick={() => handleRating('session_rating', s)} style={{...styles.star, color: s <= formData.session_rating ? '#FFD700' : '#ddd'}}>★</span>
+                    <span key={s} onClick={() => handleRating(s)} style={{...styles.star, color: s <= formData.overall_rating ? '#FFD700' : '#ddd'}}>★</span>
                   ))}
                 </div>
-              </div>
 
-              {/* ROLE SELECTION */}
-              <div style={styles.section}>
-                <label style={styles.label}>What was your primary role in this session? *</label>
-                <select style={styles.select} name="role" value={formData.role} onChange={handleChange} required>
-                  <option value="">--Select Role--</option>
-                  <option value="Volunteer">I offered support / Volunteered</option>
-                  <option value="HelpSeeker">I requested help / Struggling</option>
-                  <option value="StudyBuddy">We were just Study Buddies (Equal)</option>
-                </select>
-              </div>
-
-              {/* VOLUNTEER PATH */}
-              {formData.role === 'Volunteer' && (
-                <div style={styles.section}>
-                  <label style={styles.label}>How prepared did you feel? *</label>
-                  <select style={styles.select} name="v_preparedness" onChange={handleChange} required><option value="">--Select--</option><option value="Very prepared">Very prepared</option><option value="Somewhat prepared">Somewhat prepared</option><option value="Not prepared">Not prepared</option></select>
-
-                  <label style={styles.label}>What was the main issue discussed? *</label>
-                  <select style={styles.select} name="v_issue_discussed" onChange={handleChange} required><option value="">--Select--</option><option value="Test clarification">Test clarification</option><option value="Milestone guidance">Milestone guidance</option><option value="Time management">Time management</option><option value="Motivation">Motivation</option><option value="Technical issue">Technical issue</option><option value="Other">Other</option></select>
-
-                  <label style={styles.label}>Are you confident the learner understood next steps? *</label>
-                  <select style={styles.select} name="v_confidence" onChange={handleChange} required><option value="">--Select--</option><option value="Very confident">Very confident</option><option value="Somewhat confident">Somewhat confident</option><option value="Not confident">Not confident</option></select>
-                  
-                  <label style={styles.label}>Do you believe this session will help them submit their deliverable? *</label>
-                  <select style={styles.select} name="v_help_submit" onChange={handleChange} required><option value="">--Select--</option><option value="Yes">Yes</option><option value="Unsure">Unsure</option><option value="No">No</option></select>
-                </div>
-              )}
-
-              {/* HELP SEEKER / BUDDY PATH */}
-              {(formData.role === 'HelpSeeker' || formData.role === 'StudyBuddy') && (
-                <div style={styles.section}>
-                  <label style={styles.label}>Did you feel respected and supported? *</label>
-                  <select style={styles.select} name="h_respected" onChange={handleChange} required><option value="">--Select--</option><option value="Yes">Yes</option><option value="Somewhat">Somewhat</option><option value="No">No</option></select>
-
-                  <label style={styles.label}>Did this clarify your test/milestone? *</label>
-                  <select style={styles.select} name="h_clarified" onChange={handleChange} required><option value="">--Select--</option><option value="Yes">Yes</option><option value="Partially">Partially</option><option value="No">No</option></select>
-
-                  <label style={styles.label}>After this session, did you: *</label>
-                  <select style={styles.select} name="h_outcome" onChange={handleChange} required><option value="">--Select--</option><option value="Submit the deliverable">Submit the deliverable</option><option value="Plan to submit within 48 hours">Plan to submit within 48 hours</option><option value="Still unsure">Still unsure</option></select>
-                </div>
-              )}
-
-              {/* SAFEGUARD (For all YES paths) */}
-              {formData.role && (
-                <div style={styles.section}>
-                  <label style={styles.label}>Did you experience anything inappropriate or concerning? *</label>
-                  <select style={styles.select} name="safeguard_issue" value={formData.safeguard_issue} onChange={handleChange} required>
-                    <option value="">--Select--</option><option value="No">No</option><option value="Yes">Yes</option>
-                  </select>
-
-                  {formData.safeguard_issue === 'Yes' && (
-                    <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{marginTop: '10px'}}>
-                      <label style={{...styles.label, color: colors.secondary.tomato}}>Please provide brief details so we can assist: *</label>
-                      <textarea style={{...styles.textarea, borderColor: colors.secondary.tomato}} name="safeguard_details" value={formData.safeguard_details} onChange={handleChange} required />
+                {/* Progress Dropdown (Hidden for Volunteers) */}
+                {formData.role !== 'Volunteer' && formData.overall_rating > 0 && (
+                    <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{marginTop: '15px'}}>
+                        <label style={styles.label}>What best describes your progress after the peer session? *</label>
+                        <select style={styles.select} name="progress" value={formData.progress} onChange={handleChange} required>
+                            <option value="">--Select--</option>
+                            <option value="I was able to complete and submit my deliverable">I was able to complete and submit my deliverable</option>
+                            <option value="I plan to submit my deliverable within 48 hours">I plan to submit my deliverable within 48 hours</option>
+                            <option value="I am clearer but still working on it">I am clearer but still working on it</option>
+                            <option value="I am still stuck and need more support">I am still stuck and need more support</option>
+                        </select>
                     </motion.div>
-                  )}
-                </div>
-              )}
+                )}
+
+                {/* Consolidated Open Text for Low Ratings */}
+                <AnimatePresence>
+                    {formData.overall_rating > 0 && formData.overall_rating <= 3 && (
+                        <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} exit={{opacity:0, height:0}} style={{marginTop: '15px'}}>
+                            <label style={{...styles.label, color: colors.secondary.tomato}}>Please tell us more so we can improve: *</label>
+                            <p style={styles.hint}>Was the learning goal resolved? Did you experience anything concerning? What worked well or could be improved?</p>
+                            <textarea style={{...styles.textarea, borderColor: colors.secondary.tomato}} name="feedback_details" value={formData.feedback_details} onChange={handleChange} required placeholder="Share your experience here..." />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+              </div>
+
             </motion.div>
           )}
 
+          {/* --- 5. THE eHUB REDIRECT (OFFICIAL SUPPORT) --- */}
+          <AnimatePresence>
+              {showEscalationLink && formData.role !== 'Volunteer' && (
+                  <motion.div initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} style={{background: '#e3f2fd', border: `1px solid ${colors.secondary.electricBlue}`, padding: '15px', borderRadius: '8px', textAlign: 'center'}}>
+                      <h3 style={{margin: '0 0 5px 0', fontSize: '1.1rem', color: colors.primary.berkeleyBlue}}>Need Official Support? 🆘</h3>
+                      <p style={{fontSize: '0.9rem', color: '#555', marginBottom: '15px'}}>
+                          PeerFinder is for peer-to-peer collaboration. If you are still stuck and need escalated help, please visit the Circle platform to connect with our Community Ambassadors.
+                      </p>
+                      <a href="https://ehub.alxafrica.com/community" target="_blank" rel="noopener noreferrer" style={{display: 'inline-block', background: colors.primary.iris, color: 'white', padding: '10px 20px', borderRadius: '20px', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem'}}>
+                          Go to eHub Community &rarr;
+                      </a>
+                  </motion.div>
+              )}
+          </AnimatePresence>
+
           {/* SUBMIT BUTTON */}
-          {(isSessionNo || (isSessionYes && formData.role && formData.peer_rating > 0 && formData.session_rating > 0 && formData.safeguard_issue)) && (
+          {(isFullGhost || isOtherNo || (showRatings && formData.overall_rating > 0 && (formData.role === 'Volunteer' || formData.progress))) && (
              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" style={styles.primaryBtn} disabled={loading}>
-             {loading ? <div style={{display:'flex', gap:'10px', justifyContent:'center'}}><Spinner size="20px" /> Saving...</div> : "Submit Feedback ✨"}
+             {loading ? <div style={{display:'flex', gap:'10px', justifyContent:'center'}}><Spinner size="20px" color="white" /> Saving...</div> : "Submit Feedback ✨"}
            </motion.button>
           )}
 
@@ -246,7 +269,6 @@ const styles = {
   radioLabel: { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.95rem', cursor: 'pointer', background: 'white', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' },
   stars: { display: 'flex', fontSize: '2.5rem', cursor: 'pointer', marginBottom: '15px' },
   star: { transition: 'color 0.2s' },
-  alertBox: { background: '#fff3cd', color: '#856404', padding: '12px', borderRadius: '8px', fontSize: '0.9rem', marginBottom: '15px', border: '1px solid #ffeeba' },
   primaryBtn: { width: '100%', padding: '15px', marginTop: '10px', background: `linear-gradient(45deg, ${colors.primary.iris}, ${colors.secondary.electricBlue})`, border: 'none', borderRadius: '30px', color: 'white', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer' },
 };
 
