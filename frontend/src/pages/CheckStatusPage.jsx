@@ -10,6 +10,7 @@ const CheckStatusPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (inputIdx.trim()) {
+      // Passes the email/ID directly to the new Status Dashboard
       navigate(`/status/${inputIdx.trim()}`);
     }
   };
@@ -26,14 +27,14 @@ const CheckStatusPage = () => {
       >
         <h1 style={styles.title}>Check Match Status 🔍</h1>
         <p style={styles.subtitle}>
-          Enter your registered email address or the unique User ID you received in your email or when you registered.
+          Enter your registered ALX email address to view all your active Short Course pairings and queue requests.
         </p>
         
         <form onSubmit={handleSubmit} style={styles.form}>
           <motion.input 
             whileFocus={{ scale: 1.02, borderColor: colors.secondary.electricBlue }}
             style={styles.input} 
-            placeholder="e.g. 123e4567-e89b..." 
+            placeholder="e.g. learner@alxafrica.com" 
             value={inputIdx}
             onChange={(e) => setInputId(e.target.value)}
             required
@@ -88,6 +89,5 @@ const styles = {
     boxShadow: `0 5px 15px ${colors.primary.iris}66`
   }
 };
-
 
 export default CheckStatusPage;

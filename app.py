@@ -3,7 +3,7 @@ import uuid
 import io
 import json
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import pandas as pd
@@ -36,9 +36,12 @@ AWS_S3_BUCKET = os.environ.get('AWS_S3_BUCKET', 'alx-peerfinder-storage-bucket')
 
 s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, region_name=AWS_DEFAULT_REGION)
 
-CSV_OBJECT_KEY = 'ca_peerfinder_data.csv' 
-FEEDBACK_OBJECT_KEY = 'ca_feedback.csv'
-SESSION_FEEDBACK_OBJECT_KEY = 'ca_session_feedback.csv'
+CSV_OBJECT_KEY = 'ca_peerfinder_data2.csv' 
+FEEDBACK_OBJECT_KEY = 'ca_tool_feedback2.csv'       
+SESSION_FEEDBACK_OBJECT_KEY = 'ca_session_feedback2.csv'
+NO_SHOW_OBJECT_KEY = 'ca_no_show_analysis2.csv'  # NEW: Replaces strict Blacklist
+UNPAIR_REASONS_KEY = 'unpair_reason_data.csv'    
+
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 
 def load_google_token(env_var_name):
@@ -60,7 +63,10 @@ def validate_registration(data):
     if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', data.get('email', '')): errors.append("Invalid email address format")
     if not re.match(r'^\+?[1-9]\d{1,14}$', data.get('phone', '').replace(' ', '')): errors.append("Invalid phone number")
     if data.get('program') not in ['VA', 'AiCE', 'PF']: errors.append("Invalid program selected")
-    if data.get('connection_type') not in ['find', 'offer', 'need']: errors.append("Invalid connection type")
+    if data.get('connection_type') not in ['find', 'offer', 'need', 'group']: errors.append("Invalid connection type")
+    
+    if data.get('connection_type') == 'offer' and not data.get('pseudonym'):
+         errors.append("A pseudonym is required for volunteers")
     return errors
 
 def api_wrapper(f):
@@ -119,16 +125,16 @@ def notify_group_match(df, group_id):
                 wa_link = f"https://wa.me/{clean_phone}"
                 telegram_link = f"https://t.me/+{clean_phone}"
                 
-                support = str(peer.get('kind_of_support', '')).strip()
-                if not support or support.lower() == 'nan': support = "Study Buddy / Accountability"
                 meet_pref = str(peer.get('meeting_preference', 'All'))
                 role_label = "Volunteer" if peer['connection_type'] == 'offer' else "Peer" if peer['connection_type'] == 'need' else "Study Buddy"
+                
+                display_name = peer['name']
                     
                 peer_info_html += f"""
                 <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e0e0e0;">
-                    <strong style="font-size: 18px; color: #091F40;">{peer['name']}</strong><br/>
+                    <strong style="font-size: 18px; color: #091F40;">{display_name}</strong><br/>
                     <span style="color: #555;">📧 {peer['email']}</span><br/>
-                    <span style="color: #555;">🎯 Role: <strong>{role_label}</strong> ({support})</span><br/>
+                    <span style="color: #555;">🎯 Role: <strong>{role_label}</strong></span><br/>
                     <span style="color: #555;">📌 Prefers to meet via: <strong>{meet_pref}</strong></span><br/>
                     <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
                         <a href="{wa_link}" style="background-color: #25D366; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px;">WhatsApp</a>
@@ -136,7 +142,6 @@ def notify_group_match(df, group_id):
                     </div>
                 </div>"""
         
-        # CUSTOM EMAILS BASED ON ROLE
         is_volunteer = current_user['connection_type'] == 'offer'
         is_needer = current_user['connection_type'] == 'need'
         
@@ -177,7 +182,9 @@ def notify_group_match(df, group_id):
         except Exception: pass
 
 REQUIRED_COLUMNS = [
-    'id', 'name', 'phone', 'email', 'country', 'language', 'program', 'cohort', 'topic_module', 'learning_preferences', 'availability', 'preferred_study_setup', 'kind_of_support', 'connection_type', 'open_to_global_pairing', 'timestamp', 'matched', 'group_id', 'unpair_reason', 'matched_timestamp', 'match_attempted', 'volunteer_capacity', 'meeting_preference', 'timezone'
+    'id', 'name', 'phone', 'email', 'country', 'language', 'program', 'course', 'learning_preferences', 'availability', 
+    'match_preference', 'connection_type', 'timestamp', 'matched', 'group_id', 'unpair_reason', 'matched_timestamp', 
+    'match_attempted', 'volunteer_capacity', 'meeting_preference', 'timezone', 'group_size', 'pseudonym', 'current_load'
 ]
 
 def clean_boolean(val):
@@ -190,9 +197,10 @@ def download_csv(key=CSV_OBJECT_KEY):
         df = pd.read_csv(io.StringIO(obj['Body'].read().decode('utf-8')))
         if key == CSV_OBJECT_KEY:
             for col in REQUIRED_COLUMNS:
-                if col not in df.columns: df[col] = False if col in ['matched', 'match_attempted'] else ''
+                if col not in df.columns: 
+                    df[col] = False if col in ['matched', 'match_attempted'] else 0 if col == 'current_load' else ''
             
-            str_cols = ['id', 'name', 'phone', 'email', 'country', 'program', 'cohort', 'topic_module', 'availability', 'connection_type', 'group_id', 'open_to_global_pairing', 'preferred_study_setup', 'kind_of_support', 'learning_preferences', 'unpair_reason', 'timestamp', 'matched_timestamp', 'timezone', 'meeting_preference', 'volunteer_capacity']
+            str_cols = ['id', 'name', 'phone', 'email', 'country', 'program', 'course', 'availability', 'connection_type', 'group_id', 'match_preference', 'learning_preferences', 'unpair_reason', 'timestamp', 'matched_timestamp', 'timezone', 'meeting_preference', 'volunteer_capacity', 'group_size', 'pseudonym']
             for c in str_cols: 
                 if c in df.columns: df[c] = df[c].astype(str).str.replace(r'\.0$', '', regex=True).str.replace(r'\s+', ' ', regex=True).str.strip().replace('nan', '')
             
@@ -200,7 +208,18 @@ def download_csv(key=CSV_OBJECT_KEY):
             if 'match_attempted' in df.columns: df['match_attempted'] = df['match_attempted'].apply(clean_boolean)
             if 'email' in df.columns: df['email'] = df['email'].str.lower()
         return df
-    except ClientError: return pd.DataFrame(columns=REQUIRED_COLUMNS if key == CSV_OBJECT_KEY else ['id', 'rating', 'comment', 'timestamp'])
+    except ClientError: 
+        if key == CSV_OBJECT_KEY:
+            return pd.DataFrame(columns=REQUIRED_COLUMNS)
+        elif key == FEEDBACK_OBJECT_KEY:
+            return pd.DataFrame(columns=['id', 'rating', 'comment', 'timestamp'])
+        elif key == SESSION_FEEDBACK_OBJECT_KEY:
+             return pd.DataFrame(columns=['id', 'timestamp', 'email', 'program', 'course', 'role', 'volunteer_email', 'session_happened', 'ghoster_emails', 'rematch_request', 'overall_rating', 'progress', 'feedback_details'])
+        elif key == UNPAIR_REASONS_KEY:
+             return pd.DataFrame(columns=['timestamp', 'user_id', 'email', 'program', 'course', 'reason', 'ghoster_email'])
+        elif key == NO_SHOW_OBJECT_KEY:
+             return pd.DataFrame(columns=['timestamp', 'reporter', 'ghoster'])
+        return pd.DataFrame()
 
 def upload_csv(df, key=CSV_OBJECT_KEY):
     csv_buffer = io.StringIO()
@@ -217,7 +236,24 @@ def availability_match(a1, a2):
     if not a1_clean or not a2_clean: return False
     return (a1_clean == 'flexible' or a2_clean == 'flexible' or a1_clean == a2_clean)
 
-# === THE SMART MATCHING ENGINE (UPGRADED) ===
+def parse_tz_offset(tz_str):
+    if not tz_str or pd.isna(tz_str): return 0
+    tz_str = str(tz_str).upper()
+    if 'WAT' in tz_str: return 1
+    if 'CAT' in tz_str: return 2
+    if 'EAT' in tz_str: return 3
+    if 'GMT' in tz_str and '+' not in tz_str and '-' not in tz_str: return 0
+    match = re.search(r'UTC([+-]\d+)', tz_str)
+    if match: return int(match.group(1))
+    return 0
+
+def get_course_num(course_str):
+    try:
+        match = re.search(r'-(\d+)', str(course_str))
+        return int(match.group(1)) if match else 0
+    except: return 0
+
+# === THE SMART MATCHING ENGINE ===
 def perform_matching(df, user_id):
     user_rows = df[df['id'] == user_id]
     if user_rows.empty: return df, False, None
@@ -233,33 +269,46 @@ def perform_matching(df, user_id):
     iso = datetime.now(timezone.utc).isoformat()
     
     u_program = normalize_str(user['program'])
-    u_cohort = normalize_str(user['cohort'])
+    u_course = normalize_str(user['course'])
     u_country = normalize_str(user['country'])
-    u_module = normalize_str(user['topic_module'])
-    u_avail = normalize_str(user['availability'])
+    
+    program_pool = df[(df['matched'] == False) & (df['program'].apply(normalize_str) == u_program) & (df['course'].apply(normalize_str) == u_course) & (df['id'] != user_id)]
 
-    program_pool = df[(df['matched'] == False) & (df['program'].apply(normalize_str) == u_program) & (df['id'] != user_id)]
+    if user['connection_type'] in ['find', 'group']:
+        size = str(user['group_size']).replace('.0', '').strip() if pd.notna(user['group_size']) and user['group_size'] else '2'
+        base_pool = program_pool[(program_pool['connection_type'].isin(['find', 'group'])) & (program_pool['group_size'].astype(str).str.replace('.0', '', regex=False).str.strip() == size)].copy()
 
-    if user['connection_type'] == 'find':
-        size = str(user['preferred_study_setup']).replace('.0', '').strip() if pd.notna(user['preferred_study_setup']) and user['preferred_study_setup'] else '2'
-        base_pool = program_pool[(program_pool['connection_type'] == 'find') & (program_pool['preferred_study_setup'].astype(str).str.replace('.0', '', regex=False).str.strip() == size)]
+        needed = int(size) - 1
+        if len(base_pool) >= needed:
+             u_tz = parse_tz_offset(user['timezone'])
+             best_match_indices = []
 
-        if str(user.get('open_to_global_pairing', '')).strip().upper() == 'YES':
-            pool = base_pool[(base_pool['cohort'].apply(normalize_str) == u_cohort) & ((base_pool['country'].apply(normalize_str) == u_country) | (base_pool['open_to_global_pairing'].astype(str).str.strip().str.upper() == 'YES'))].copy()
-        else:
-            pool = base_pool[(base_pool['cohort'].apply(normalize_str) == u_cohort) & (base_pool['country'].apply(normalize_str) == u_country) & (base_pool['topic_module'].apply(normalize_str) == u_module) & (base_pool['availability'].apply(lambda x: availability_match(str(x), u_avail)))].copy()
-        
-        if len(pool) >= (int(size) - 1):
-            all_idx = [idx] + pool.head(int(size) - 1).index.tolist()
-            df.loc[all_idx, 'matched'] = True
-            df.loc[all_idx, 'group_id'] = gid
-            df.loc[all_idx, 'matched_timestamp'] = iso
-            df.loc[all_idx, 'unpair_reason'] = '' 
-            updated = True
+             for pool_idx, p_user in base_pool.iterrows():
+                  p_tz = parse_tz_offset(p_user['timezone'])
+                  tz_diff = abs(u_tz - p_tz)
+
+                  if user['country'] == p_user['country'] and user['match_preference'] in ['Country', 'Timezone']:
+                      best_match_indices.append(pool_idx)
+                  elif u_tz == p_tz and user['match_preference'] in ['Timezone', 'Buffer']:
+                      best_match_indices.append(pool_idx)
+                  elif tz_diff <= 2 and user['match_preference'] == 'Buffer':
+                      best_match_indices.append(pool_idx)
+                  elif user['match_preference'] == 'Global' and p_user['match_preference'] == 'Global':
+                      best_match_indices.append(pool_idx)
+                  
+                  if len(best_match_indices) == needed: break
+
+             if len(best_match_indices) == needed:
+                  all_idx = [idx] + best_match_indices
+                  df.loc[all_idx, 'matched'] = True
+                  df.loc[all_idx, 'group_id'] = gid
+                  df.loc[all_idx, 'matched_timestamp'] = iso
+                  df.loc[all_idx, 'unpair_reason'] = '' 
+                  updated = True
             
     elif user['connection_type'] == 'offer':
         capacity = int(float(user.get('volunteer_capacity', 3))) if pd.notna(user.get('volunteer_capacity')) and user.get('volunteer_capacity') not in ['', 'None'] else 3
-        pool = program_pool[(program_pool['connection_type'] == 'need') & (program_pool['cohort'].apply(normalize_str) == u_cohort)].copy()
+        pool = program_pool[(program_pool['connection_type'] == 'need')].copy()
         
         if not pool.empty:
             matched_peers = pool.head(capacity)
@@ -268,11 +317,12 @@ def perform_matching(df, user_id):
             df.loc[all_idx, 'group_id'] = gid
             df.loc[all_idx, 'matched_timestamp'] = iso
             df.loc[all_idx, 'unpair_reason'] = ''
+            df.at[idx, 'current_load'] = len(matched_peers)
             updated = True
             
     elif user['connection_type'] == 'need':
-        # 1. Search for an EXISTING matched volunteer who still has open capacity!
-        active_vols = df[(df['connection_type'] == 'offer') & (df['program'].apply(normalize_str) == u_program) & (df['cohort'].apply(normalize_str) == u_cohort) & (df['matched'] == True)]
+        course_num = get_course_num(user['course'])
+        active_vols = df[(df['connection_type'] == 'offer') & (df['program'].apply(normalize_str) == u_program) & (df['matched'] == True)]
         joined_existing = False
         
         for v_idx, vol in active_vols.iterrows():
@@ -280,36 +330,37 @@ def perform_matching(df, user_id):
             v_group_id = vol['group_id']
             if not v_group_id: continue
             
-            current_needers = len(df[(df['group_id'] == v_group_id) & (df['connection_type'] == 'need')])
-            if current_needers < v_cap:
-                # Boom! We found an open group. Slide the new needer in.
-                df.at[idx, 'matched'] = True
-                df.at[idx, 'group_id'] = v_group_id
-                df.at[idx, 'matched_timestamp'] = iso
-                df.at[idx, 'unpair_reason'] = ''
-                updated = True
-                gid = v_group_id
-                joined_existing = True
-                break
+            if get_course_num(vol['course']) >= course_num:
+                current_needers = len(df[(df['group_id'] == v_group_id) & (df['connection_type'] == 'need')])
+                if current_needers < v_cap:
+                    df.at[idx, 'matched'] = True
+                    df.at[idx, 'group_id'] = v_group_id
+                    df.at[idx, 'matched_timestamp'] = iso
+                    df.at[idx, 'unpair_reason'] = ''
+                    df.at[v_idx, 'current_load'] = current_needers + 1
+                    updated = True
+                    gid = v_group_id
+                    joined_existing = True
+                    break
                 
-        # 2. If no open groups exist, search for a brand NEW unmatched volunteer
         if not joined_existing:
-            pool = program_pool[(program_pool['connection_type'] == 'offer') & (program_pool['cohort'].apply(normalize_str) == u_cohort)].copy()
-            if not pool.empty:
-                volunteer_idx = pool.index[0]
-                volunteer = pool.iloc[0]
-                v_cap = int(float(volunteer.get('volunteer_capacity', 3))) if pd.notna(volunteer.get('volunteer_capacity')) and volunteer.get('volunteer_capacity') not in ['', 'None'] else 3
-                
-                # Vacuum up any OTHER unmatched needers while we are at it
-                other_needers = program_pool[(program_pool['connection_type'] == 'need') & (program_pool['cohort'].apply(normalize_str) == u_cohort) & (program_pool['id'] != user_id)].copy()
-                matched_other_needers = other_needers.head(v_cap - 1)
-                
-                all_idx = [idx, volunteer_idx] + matched_other_needers.index.tolist()
-                df.loc[all_idx, 'matched'] = True
-                df.loc[all_idx, 'group_id'] = gid
-                df.loc[all_idx, 'matched_timestamp'] = iso
-                df.loc[all_idx, 'unpair_reason'] = ''
-                updated = True
+            unmatched_vols = df[(df['matched'] == False) & (df['connection_type'] == 'offer') & (df['program'].apply(normalize_str) == u_program) & (df['id'] != user_id)]
+            
+            for v_idx, vol in unmatched_vols.iterrows():
+                if get_course_num(vol['course']) >= course_num:
+                     v_cap = int(float(vol.get('volunteer_capacity', 3))) if pd.notna(vol.get('volunteer_capacity')) and vol.get('volunteer_capacity') not in ['', 'None'] else 3
+                     
+                     other_needers = program_pool[(program_pool['connection_type'] == 'need') & (program_pool['id'] != user_id)].copy()
+                     matched_other_needers = other_needers.head(v_cap - 1)
+                     
+                     all_idx = [idx, v_idx] + matched_other_needers.index.tolist()
+                     df.loc[all_idx, 'matched'] = True
+                     df.loc[all_idx, 'group_id'] = gid
+                     df.loc[all_idx, 'matched_timestamp'] = iso
+                     df.loc[all_idx, 'unpair_reason'] = ''
+                     df.at[v_idx, 'current_load'] = len(matched_other_needers) + 1
+                     updated = True
+                     break
 
     return df, updated, gid
 
@@ -331,99 +382,117 @@ def register():
     if not phone.startswith('+'): phone = '+' + phone.lstrip('+')
 
     df = download_csv()
-    capacity_val = data.get('volunteer_capacity', '3') if data['connection_type'] == 'offer' else 'None'
+    capacity_val = data.get('volunteer_capacity', '3') if data['connection_type'] == 'offer' else '0'
     
-    existing_mask = ((df['email'] == email) | (df['phone'] == phone)) & (df['connection_type'] == data['connection_type'])
+    existing_mask = ((df['email'] == email) | (df['phone'] == phone)) & (df['connection_type'] == data['connection_type']) & (df['course'] == data['course'])
     if not df[existing_mask].empty:
         idx = existing_mask.idxmax()
         existing = df.loc[idx]
-        if bool(existing['matched']): return jsonify({"success": False, "is_duplicate": True, "user_id": str(existing['id']), "already_matched": True})
-        else:
-            df.at[idx, 'name'] = data['name']
-            df.at[idx, 'program'] = data['program']
-            df.at[idx, 'cohort'] = data['cohort']
-            df.at[idx, 'country'] = data.get('country', '')
-            df.at[idx, 'language'] = data.get('language', '')
-            df.at[idx, 'topic_module'] = data.get('topic_module', '')
-            df.at[idx, 'learning_preferences'] = data.get('learning_preferences', '')
-            df.at[idx, 'availability'] = data.get('availability', '')
-            df.at[idx, 'preferred_study_setup'] = data.get('preferred_study_setup', '')
-            df.at[idx, 'kind_of_support'] = data.get('kind_of_support', '')
-            df.at[idx, 'connection_type'] = data['connection_type']
-            df.at[idx, 'open_to_global_pairing'] = data.get('open_to_global_pairing', 'No')
-            df.at[idx, 'match_attempted'] = False 
-            df.at[idx, 'volunteer_capacity'] = capacity_val
-            df.at[idx, 'meeting_preference'] = data.get('meeting_preference', 'All')
-            df.at[idx, 'timezone'] = data.get('timezone', '')
-            upload_csv(df)
-            return jsonify({"success": True, "user_id": str(existing['id'])})
+        return jsonify({"success": False, "is_duplicate": True, "user_id": str(existing['id']), "already_matched": bool(existing['matched'])})
 
     new_id = str(uuid.uuid4())
     new_user = {
         'id': new_id, 'name': data['name'], 'email': email, 'phone': phone,
-        'program': data['program'], 'cohort': data['cohort'], 'country': data.get('country', ''), 
-        'language': data.get('language', ''), 'topic_module': data.get('topic_module', ''),
-        'learning_preferences': data.get('learning_preferences', ''), 'availability': data.get('availability', ''),
-        'preferred_study_setup': data.get('preferred_study_setup', ''), 'kind_of_support': data.get('kind_of_support', ''),
-        'connection_type': data['connection_type'], 'open_to_global_pairing': data.get('open_to_global_pairing', 'No'),
+        'program': data['program'], 'course': data['course'], 'country': data.get('country', ''), 
+        'language': data.get('language', ''), 'learning_preferences': data.get('learning_preferences', ''), 
+        'availability': data.get('availability', ''),
+        'group_size': data.get('group_size', '2'),
+        'connection_type': data['connection_type'], 'match_preference': data.get('match_preference', 'Global'),
         'timestamp': datetime.now(timezone.utc).isoformat(), 'matched': False, 'group_id': '', 'unpair_reason': '',
         'matched_timestamp': '', 'match_attempted': False, 'volunteer_capacity': capacity_val,
-        'meeting_preference': data.get('meeting_preference', 'All'), 'timezone': data.get('timezone', '')
+        'current_load': 0, 'meeting_preference': data.get('meeting_preference', 'All'), 'timezone': data.get('timezone', ''),
+        'pseudonym': data.get('pseudonym', '') 
     }
+    
+    target_volunteer_id = data.get('target_volunteer_id')
+    if target_volunteer_id:
+         vol_idx = df.index[df['id'] == target_volunteer_id].tolist()
+         if vol_idx:
+             v_i = vol_idx[0]
+             if int(df.at[v_i, 'current_load'] or 0) < int(df.at[v_i, 'volunteer_capacity'] or 3):
+                  group_id = df.at[v_i, 'group_id']
+                  if not group_id or pd.isna(group_id):
+                       group_id = str(uuid.uuid4())
+                       df.at[v_i, 'group_id'] = group_id
+                       df.at[v_i, 'matched'] = True
+                       df.at[v_i, 'matched_timestamp'] = datetime.now(timezone.utc).isoformat()
+                  
+                  new_user['matched'] = True
+                  new_user['group_id'] = group_id
+                  new_user['matched_timestamp'] = datetime.now(timezone.utc).isoformat()
+                  df.at[v_i, 'current_load'] = int(df.at[v_i, 'current_load'] or 0) + 1
+                  
+                  df = pd.concat([df, pd.DataFrame([new_user])], ignore_index=True)
+                  upload_csv(df)
+                  notify_group_match(df, group_id)
+                  return jsonify({"success": True, "user_id": new_id})
+    
     df = pd.concat([df, pd.DataFrame([new_user])], ignore_index=True)
+    df, updated, gid = perform_matching(df, new_id)
     upload_csv(df)
     
-    wait_body = f"""<h2 style="color: #091F40; margin-top: 0;">You're in Queue! ⏳</h2>
-    Hi <strong>{data['name']}</strong>,<br/><br/>Your request is currently in the queue.<br/>
-    As soon as a suitable peer or group is available, you'll be matched and notified via email.<br/><br/>
-    You can check your status anytime on the PeerFinder app using your Email Address.<br/>
-    Best regards,<br/><strong>Peer Finder Team</strong>"""
-    send_email(email, "PeerFinder - Waiting to Be Matched ⏳", wait_body, data['program'], is_html=True)
+    if updated:
+         notify_group_match(df, gid)
+    else:
+        wait_body = f"""<h2 style="color: #091F40; margin-top: 0;">You're in Queue! ⏳</h2>
+        Hi <strong>{data['name']}</strong>,<br/><br/>Your request is currently in the queue.<br/>
+        As soon as a suitable peer or group is available, you'll be matched and notified via email.<br/><br/>
+        You can check your status anytime on the PeerFinder app using your Email Address.<br/>
+        Best regards,<br/><strong>Peer Finder Team</strong>"""
+        send_email(email, "PeerFinder - Waiting to Be Matched ⏳", wait_body, data['program'], is_html=True)
+        
     return jsonify({"success": True, "user_id": new_id})
+
+@app.route('/api/marketplace', methods=['GET'])
+@api_wrapper
+def marketplace():
+    program = request.args.get('program')
+    course = request.args.get('course')
+    course_num = get_course_num(course)
+
+    df = download_csv()
+    df_offers = df[(df['connection_type'] == 'offer') & (df['program'] == program)].copy()
+    
+    df_offers['course_level'] = df_offers['course'].apply(get_course_num)
+    df_valid = df_offers[df_offers['course_level'] >= course_num]
+    
+    df_valid = df_valid[pd.to_numeric(df_valid['current_load'], errors='coerce').fillna(0) < pd.to_numeric(df_valid['volunteer_capacity'], errors='coerce').fillna(3)]
+    
+    volunteers = df_valid[['id', 'pseudonym', 'country', 'timezone', 'availability', 'language', 'course', 'volunteer_capacity', 'current_load']].to_dict('records')
+    
+    for v in volunteers: 
+        v['capacity'] = v.pop('volunteer_capacity')
+        v['name'] = v.pop('pseudonym') 
+        
+    return jsonify({'success': True, 'volunteers': volunteers})
 
 @app.route('/api/status/<identifier>', methods=['GET'])
 @api_wrapper
 def status(identifier):
     df = download_csv()
     ident_lower = identifier.strip().lower()
-    user_rows = df[(df['id'] == identifier.strip()) | (df['email'].str.lower() == ident_lower)].sort_values(by='timestamp', ascending=False)
-    if user_rows.empty: return jsonify({"error": "Not found"}), 404
+    
+    user_requests = df[(df['id'] == identifier.strip()) | (df['email'].str.lower() == ident_lower)].sort_values(by='timestamp', ascending=False)
+    if user_requests.empty: return jsonify({"error": "Not found"}), 404
         
-    u = user_rows.iloc[0]
-    res = { 
-        "matched": bool(u['matched']), 
-        "user": {
-            "name": u['name'], "program": u.get('program', ''), "cohort": u['cohort'],
-            "connection_type": str(u.get('connection_type', '')),
-            "volunteer_capacity": str(u.get('volunteer_capacity', ''))
-        }, 
-        "real_id": str(u['id']) 
-    }
-    
-    if bool(u['matched']) and u['group_id']:
-        grp = df[df['group_id'] == u['group_id']]
-        res['group'] = grp[['name', 'email', 'phone', 'connection_type', 'meeting_preference']].fillna("").to_dict('records')
-    return jsonify(res)
-
-@app.route('/api/match', methods=['POST'])
-@api_wrapper
-def match():
-    data = request.json
-    user_id = data.get('user_id')
-    df = download_csv()
-    
-    df, updated, gid = perform_matching(df, user_id)
-    upload_csv(df)
-    
-    if updated:
-        notify_group_match(df, gid)
-        return jsonify({'matched': True, 'group_id': gid})
-    
-    user_row = df[df['id'] == user_id]
-    if not user_row.empty and bool(user_row.iloc[0]['matched']):
-        return jsonify({'matched': True, 'group_id': user_row.iloc[0]['group_id']})
+    res_list = []
+    for _, u in user_requests.iterrows():
+        res = { 
+            "matched": bool(u['matched']), 
+            "user": {
+                "name": u['name'], "program": u.get('program', ''), "course": u['course'],
+                "connection_type": str(u.get('connection_type', '')),
+                "volunteer_capacity": str(u.get('volunteer_capacity', ''))
+            }, 
+            "real_id": str(u['id']) 
+        }
         
-    return jsonify({'matched': False})
+        if bool(u['matched']) and u['group_id']:
+            grp = df[df['group_id'] == u['group_id']]
+            res['group'] = grp[['name', 'email', 'phone', 'connection_type', 'meeting_preference']].fillna("").to_dict('records')
+        res_list.append(res)
+        
+    return jsonify(res_list)
 
 @app.route('/api/admin/auto-match-queue', methods=['POST'])
 @api_wrapper
@@ -432,7 +501,7 @@ def auto_match_queue():
     if data.get('password') != ADMIN_PASSWORD: return jsonify({"error": "Unauthorized"}), 401
     
     df = download_csv()
-    unattempted = df[(df['matched'] == False) & (df['match_attempted'] == False)]
+    unattempted = df[(df['matched'] == False)]
     
     if unattempted.empty:
         return jsonify({"success": True, "message": "Queue is completely clean! No unattempted learners found."})
@@ -456,37 +525,197 @@ def leave_group(user_id=None):
     data = request.get_json() or {}
     target_id = user_id or data.get('user_id')
     delete_profile = data.get('delete_profile', False)
+    reason = data.get('reason', 'User Requested')
+    ghoster_email = data.get('ghoster_email', '').strip().lower()
     
     df = download_csv()
     user_rows = df[df['id'] == target_id]
     if user_rows.empty: return jsonify({"error": "User not found"}), 404
     
     idx = user_rows.index[0]
-    old_group_id = df.at[idx, 'group_id'] 
-    df.at[idx, 'matched'] = False
-    df.at[idx, 'group_id'] = ''
-    df.at[idx, 'unpair_reason'] = data.get('reason', 'User Requested')
+    user_row = df.loc[idx]
     
+    # 1. Log to Unpair Reasons
+    df_reasons = download_csv(UNPAIR_REASONS_KEY)
+    new_reason = {'timestamp': datetime.now(timezone.utc).isoformat(), 'user_id': target_id, 'email': user_row['email'], 'program': user_row['program'], 'course': user_row['course'], 'reason': reason, 'ghoster_email': ghoster_email}
+    df_reasons = pd.concat([df_reasons, pd.DataFrame([new_reason])], ignore_index=True)
+    upload_csv(df_reasons, UNPAIR_REASONS_KEY)
+
+    # 2. Gentle Nudge Engine
+    if 'Ghosting' in reason and ghoster_email:
+        no_show_df = download_csv(NO_SHOW_OBJECT_KEY)
+        new_no_show = {'timestamp': datetime.now(timezone.utc).isoformat(), 'reporter': user_row['email'], 'ghoster': ghoster_email}
+        no_show_df = pd.concat([no_show_df, pd.DataFrame([new_no_show])], ignore_index=True)
+        upload_csv(no_show_df, NO_SHOW_OBJECT_KEY)
+        
+        ghoster_rows = df[df['email'] == ghoster_email]
+        for g_idx, g_user in ghoster_rows.iterrows():
+            g_name = g_user.get('name', 'Learner')
+            g_prog = g_user.get('program', user_row['program'])
+            g_type = g_user.get('connection_type', '')
+            
+            subject = "PeerFinder - Session Attendance Notice"
+            body = f"Hi <strong>{g_name}</strong>,<br/><br/>Your matched peer has flagged you for ghosting / not showing up to your recent session. <br/><br/>We understand juggling life and learning can be tough! When you have more capacity and are ready to try again, please feel free to reregister on PeerFinder.<br/><br/>Best regards,<br/><strong>Peer Finder Team</strong>"
+            send_email(ghoster_email, subject, body, g_prog, is_html=True)
+            
+            # Delete if they are standard Study Buddy or Group Member
+            if g_type in ['find', 'group']:
+                df.drop(index=g_idx, inplace=True)
+
+    # 3. Unpair Operations (using latest indices just in case ghoster was dropped)
+    old_group_id = df.at[idx, 'group_id'] if idx in df.index else ''
     if old_group_id:
         remaining_members = df[df['group_id'] == old_group_id]
-        if len(remaining_members) == 1:
-            rem_idx = remaining_members.index[0]
+        if len(remaining_members) == 2: # 1 other person left
+            rem_idx = remaining_members[remaining_members['id'] != target_id].index[0]
             df.at[rem_idx, 'matched'] = False
             df.at[rem_idx, 'group_id'] = ''
+            df.at[rem_idx, 'timestamp'] = datetime.now(timezone.utc).isoformat()
+            df.at[rem_idx, 'match_attempted'] = False
+        elif user_row['connection_type'] == 'offer':
+             others_idx = remaining_members[remaining_members['id'] != target_id].index.tolist()
+             for o_idx in others_idx:
+                  df.at[o_idx, 'matched'] = False
+                  df.at[o_idx, 'group_id'] = ''
+                  df.at[o_idx, 'timestamp'] = datetime.now(timezone.utc).isoformat()
+                  df.at[o_idx, 'match_attempted'] = False
+        else:
+             vol_idx = df.index[(df['group_id'] == old_group_id) & (df['connection_type'] == 'offer')].tolist()
+             if vol_idx: df.at[vol_idx[0], 'current_load'] = max(0, int(df.at[vol_idx[0], 'current_load']) - 1)
             
-    if delete_profile: df = df.drop(index=idx)
+    if delete_profile: 
+        if idx in df.index: df = df.drop(index=idx)
+    else:
+        if idx in df.index:
+            df.at[idx, 'matched'] = False
+            df.at[idx, 'group_id'] = ''
+            df.at[idx, 'unpair_reason'] = reason
+            df.at[idx, 'current_load'] = 0
+            df.at[idx, 'timestamp'] = datetime.now(timezone.utc).isoformat()
+            df.at[idx, 'match_attempted'] = False
+
     upload_csv(df)
     return jsonify({"success": True})
 
 @app.route('/api/feedback', methods=['POST'])
 @api_wrapper
-def submit_feedback():
+def submit_tool_feedback():
     data = request.get_json()
     df = download_csv(FEEDBACK_OBJECT_KEY)
     new_row = {'id': str(uuid.uuid4()), 'rating': data.get('rating'), 'comment': data.get('comment', ''), 'timestamp': datetime.now(timezone.utc).isoformat()}
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     upload_csv(df, FEEDBACK_OBJECT_KEY)
     return jsonify({"success": True})
+
+@app.route('/api/peer-feedback', methods=['POST'])
+@api_wrapper
+def submit_peer_session_feedback():
+    data = request.get_json()
+    
+    # --- 1. HANDLE THE GENTLE NUDGE & GHOSTER DELETION ---
+    ghoster_emails_str = data.get('ghoster_emails', '')
+    if ghoster_emails_str:
+        emails = [e.strip().lower() for e in ghoster_emails_str.split(',') if e.strip()]
+        if emails:
+            main_df = download_csv(CSV_OBJECT_KEY)
+            no_show_df = download_csv(NO_SHOW_OBJECT_KEY)
+            modified_main = False
+            
+            for g_email in emails:
+                new_no_show = {'timestamp': datetime.now(timezone.utc).isoformat(), 'reporter': data.get('email', ''), 'ghoster': g_email}
+                no_show_df = pd.concat([no_show_df, pd.DataFrame([new_no_show])], ignore_index=True)
+                
+                ghoster_rows = main_df[main_df['email'] == g_email]
+                for idx, g_user in ghoster_rows.iterrows():
+                    g_name = g_user.get('name', 'Learner')
+                    g_prog = g_user.get('program', data.get('program', 'PF'))
+                    g_type = g_user.get('connection_type', '')
+                    
+                    subject = "PeerFinder - Session Attendance Notice"
+                    body = f"Hi <strong>{g_name}</strong>,<br/><br/>Your matched peer has flagged you for ghosting / not showing up to your recent session. <br/><br/>We understand juggling life and learning can be tough! When you have more capacity and are ready to try again, please feel free to reregister on PeerFinder.<br/><br/>Best regards,<br/><strong>Peer Finder Team</strong>"
+                    send_email(g_email, subject, body, g_prog, is_html=True)
+                    
+                    # ONLY delete if they are standard Study Buddy / Group
+                    if g_type in ['find', 'group']:
+                        main_df = main_df.drop(index=idx)
+                        modified_main = True
+                        
+            upload_csv(no_show_df, NO_SHOW_OBJECT_KEY)
+            if modified_main: upload_csv(main_df, CSV_OBJECT_KEY)
+            
+    # --- 2. HANDLE SUBMITTER AUTONOMY (Rematch or Delete) ---
+    rematch_request = data.get('rematch_request', '')
+    submitter_email = data.get('email', '').strip().lower()
+    
+    if rematch_request in ['Rematch', 'Delete']:
+        main_df = download_csv(CSV_OBJECT_KEY)
+        submitter_rows = main_df[main_df['email'] == submitter_email]
+        if not submitter_rows.empty:
+            idx = submitter_rows.index[0]
+            if rematch_request == 'Delete':
+                main_df = main_df.drop(index=idx)
+            elif rematch_request == 'Rematch':
+                main_df.at[idx, 'matched'] = False
+                main_df.at[idx, 'group_id'] = ''
+                main_df.at[idx, 'match_attempted'] = False
+                main_df.at[idx, 'timestamp'] = datetime.now(timezone.utc).isoformat()
+            upload_csv(main_df, CSV_OBJECT_KEY)
+            
+    # --- 3. SAVE THE ULTRA-LEAN FEEDBACK ---
+    df_feedback = download_csv(SESSION_FEEDBACK_OBJECT_KEY)
+    new_row = {
+        'id': str(uuid.uuid4()), 
+        'timestamp': datetime.now(timezone.utc).isoformat(), 
+        'email': data.get('email', ''),
+        'program': data.get('program', ''), 
+        'course': data.get('course', ''),
+        'role': data.get('role', ''),
+        'volunteer_email': data.get('volunteer_email', ''),
+        'session_happened': data.get('session_happened', ''),
+        'ghoster_emails': data.get('ghoster_emails', ''), 
+        'rematch_request': data.get('rematch_request', ''),
+        'overall_rating': data.get('overall_rating', 0), 
+        'progress': data.get('progress', ''),
+        'feedback_details': data.get('feedback_details', '')
+    }
+    df_feedback = pd.concat([df_feedback, pd.DataFrame([new_row])], ignore_index=True)
+    upload_csv(df_feedback, SESSION_FEEDBACK_OBJECT_KEY)
+    
+    return jsonify({"success": True})
+
+@app.route('/api/leaderboard', methods=['GET'])
+@api_wrapper
+def get_leaderboard():
+    df_feedback = download_csv(SESSION_FEEDBACK_OBJECT_KEY)
+    if df_feedback.empty or 'volunteer_email' not in df_feedback.columns: return jsonify({"success": True, "leaderboard": []})
+    
+    df_users = download_csv(CSV_OBJECT_KEY)
+    
+    df_feedback['volunteer_email'] = df_feedback['volunteer_email'].astype(str).str.strip().str.lower()
+    df_feedback['overall_rating'] = pd.to_numeric(df_feedback['overall_rating'], errors='coerce').fillna(0)
+    
+    valid_feedback = df_feedback[(df_feedback['volunteer_email'] != '') & (df_feedback['volunteer_email'] != 'nan')]
+    
+    if not valid_feedback.empty:
+        leaders = valid_feedback.groupby('volunteer_email')['overall_rating'].sum().reset_index()
+        leaders = leaders.sort_values(by='overall_rating', ascending=False).head(10)
+    else: 
+        return jsonify({"success": True, "leaderboard": []})
+    
+    leaderboard = []
+    for _, row in leaders.iterrows():
+        p_email = row['volunteer_email']
+        score = int(row['overall_rating'])
+        user_match = df_users[df_users['email'].str.lower() == p_email]
+        
+        # Display pseudonym instead of full name to protect Volunteer privacy
+        name = p_email.split('@')[0]
+        if not user_match.empty:
+            name = user_match.iloc[0].get('pseudonym') or user_match.iloc[0]['name']
+            
+        leaderboard.append({"name": name, "score": score})
+        
+    return jsonify({"success": True, "leaderboard": leaderboard})
 
 @app.route('/api/admin/data', methods=['POST'])
 @api_wrapper
@@ -511,13 +740,13 @@ def get_admin_data():
     else: match_speed = "N/A"
 
     try:
-        df_feedback = download_csv(FEEDBACK_OBJECT_KEY)
+        df_feedback = download_csv(FEEDBACK_OBJECT_KEY) 
         if not df_feedback.empty and 'rating' in df_feedback.columns:
             avg_rating = pd.to_numeric(df_feedback['rating'], errors='coerce').mean()
             tool_rating = f"{avg_rating:.1f} / 5.0" if pd.notna(avg_rating) else "N/A"
         else: tool_rating = "N/A"
     except Exception: tool_rating = "N/A"
-
+    
     stats = {
         "total": total, "matched": matched_count, "pending": pending_count, "match_rate": match_rate,
         "match_speed": match_speed, "tool_rating": tool_rating
@@ -536,8 +765,8 @@ def random_pair():
     if bool(t_row.iloc[0]['matched']): return jsonify({"error": "Already matched"}), 400
     
     user = t_row.iloc[0]
-    size = str(user['preferred_study_setup']).replace('.0', '').strip() if pd.notna(user['preferred_study_setup']) and user['preferred_study_setup'] else '2'
-    pool = df[(df['matched'] == False) & (df['id'] != tid) & (df['program'].apply(normalize_str) == normalize_str(user['program'])) & (df['preferred_study_setup'].astype(str).str.replace('.0', '', regex=False).str.strip() == size)]
+    size = str(user['group_size']).replace('.0', '').strip() if pd.notna(user['group_size']) else '2'
+    pool = df[(df['matched'] == False) & (df['id'] != tid) & (df['program'].apply(normalize_str) == normalize_str(user['program'])) & (df['group_size'].astype(str).str.replace('.0', '', regex=False).str.strip() == size)]
     
     needed = int(size) - 1
     if len(pool) < needed: return jsonify({"success": False, "message": "Not enough learners"}), 200
@@ -574,6 +803,34 @@ def manual_pair():
     notify_group_match(df, gid)
     return jsonify({"success": True, "message": "Paired!"})
 
+@app.route('/api/admin/nudge-feedback', methods=['POST'])
+@api_wrapper
+def nudge_feedback():
+    if request.json.get('password') != ADMIN_PASSWORD: return jsonify({'success': False}), 401
+    df_peers = download_csv()
+    df_feed = download_csv(SESSION_FEEDBACK_OBJECT_KEY)
+    
+    three_days_ago = datetime.now(timezone.utc) - timedelta(days=3)
+    nudged_count = 0
+    
+    for idx, row in df_peers[df_peers['matched'] == True].iterrows():
+        try:
+            match_time = datetime.fromisoformat(str(row['matched_timestamp']))
+            if match_time < three_days_ago:
+                has_feedback = not df_feed[df_feed['email'] == row['email']].empty
+                if not has_feedback:
+                    send_email(
+                        to=row['email'], 
+                        subject="Rate your ALX Peer Session! ⭐", 
+                        body=f"Hi {row['name']},<br/><br/>We noticed you were matched a few days ago for {row['course']}. Please log in to PeerFinder and submit your session feedback to help your peers earn Legacy Points!<br/><br/>Thank you.",
+                        program_name=row['program']
+                    )
+                    nudged_count += 1
+        except: pass
+            
+    return jsonify({'success': True, 'message': f'Sent nudges to {nudged_count} learners.'})
+
+# --- FILE DOWNLOADS ---
 @app.route('/api/admin/download', methods=['POST'])
 @api_wrapper
 def admin_dl():
@@ -586,73 +843,17 @@ def dl_feedback():
     if request.get_json().get('password') != ADMIN_PASSWORD: return jsonify({"error": "Unauthorized"}), 401
     return Response(download_csv(FEEDBACK_OBJECT_KEY).to_csv(index=False), mimetype='text/csv')
 
-@app.route('/api/unpair/<user_id>', methods=['POST'])
-@api_wrapper
-def admin_unpair(user_id): return leave_group(user_id=user_id)
-
-@app.route('/api/peer-feedback', methods=['POST'])
-@api_wrapper
-def submit_peer_session_feedback():
-    data = request.get_json()
-    df = download_csv(SESSION_FEEDBACK_OBJECT_KEY)
-    new_row = {
-        'id': str(uuid.uuid4()), 'timestamp': datetime.now(timezone.utc).isoformat(), 'email': data.get('email', ''),
-        'peer_email': data.get('peer_email', ''), 'program': data.get('program', ''), 'session_happened': data.get('session_happened', ''),
-        'no_session_reason': data.get('no_session_reason', ''), 'rematch_request': data.get('rematch_request', ''),
-        'role': data.get('role', ''), 'peer_rating': data.get('peer_rating', ''), 'session_rating': data.get('session_rating', ''),
-        'v_preparedness': data.get('v_preparedness', ''), 'v_issue_discussed': data.get('v_issue_discussed', ''), 'v_confidence': data.get('v_confidence', ''),
-        'v_commit_action': data.get('v_commit_action', ''), 'v_help_submit': data.get('v_help_submit', ''), 'v_worked_well': data.get('v_worked_well', ''),
-        'v_improve': data.get('v_improve', ''), 'h_respected': data.get('h_respected', ''), 'h_clarified': data.get('h_clarified', ''),
-        'h_outcome': data.get('h_outcome', ''), 'h_request_again': data.get('h_request_again', ''), 'h_most_helpful': data.get('h_most_helpful', ''),
-        'h_improve': data.get('h_improve', ''), 'safeguard_issue': data.get('safeguard_issue', ''), 'safeguard_details': data.get('safeguard_details', '')
-    }
-    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-    upload_csv(df, SESSION_FEEDBACK_OBJECT_KEY)
-    return jsonify({"success": True})
-
 @app.route('/api/admin/download-session-feedback', methods=['POST'])
 @api_wrapper
 def dl_session_feedback():
     if request.get_json().get('password') != ADMIN_PASSWORD: return jsonify({"error": "Unauthorized"}), 401
     return Response(download_csv(SESSION_FEEDBACK_OBJECT_KEY).to_csv(index=False), mimetype='text/csv')
 
-@app.route('/api/leaderboard', methods=['GET'])
+@app.route('/api/admin/download-unpair-reasons', methods=['POST'])
 @api_wrapper
-def get_leaderboard():
-    df_feedback = download_csv(SESSION_FEEDBACK_OBJECT_KEY)
-    if df_feedback.empty or 'peer_email' not in df_feedback.columns: return jsonify({"success": True, "leaderboard": []})
-    df_users = download_csv(CSV_OBJECT_KEY)
-    
-    df_feedback['peer_email'] = df_feedback['peer_email'].astype(str).str.strip().str.lower()
-    df_feedback['email'] = df_feedback['email'].astype(str).str.strip().str.lower()
-    df_feedback['peer_rating'] = pd.to_numeric(df_feedback['peer_rating'], errors='coerce').fillna(0)
-    df_feedback['session_rating'] = pd.to_numeric(df_feedback['session_rating'], errors='coerce').fillna(0)
-    
-    valid_feedback = df_feedback[(df_feedback['peer_email'] != '') & (df_feedback['peer_email'] != 'nan') & (df_feedback['email'] != df_feedback['peer_email'])].copy()
-    
-    def calculate_points(row):
-        score = row['peer_rating'] + row['session_rating']
-        if str(row.get('h_respected')).strip().lower() == 'yes': score += 5
-        clarified = str(row.get('h_clarified')).strip().lower()
-        if clarified == 'yes': score += 5
-        elif clarified == 'partially': score += 2
-        if str(row.get('h_outcome')).strip().lower() == 'submit the deliverable': score += 5
-        return score
-
-    if not valid_feedback.empty:
-        valid_feedback['points'] = valid_feedback.apply(calculate_points, axis=1)
-        leaders = valid_feedback.groupby('peer_email')['points'].sum().reset_index()
-        leaders = leaders.sort_values(by='points', ascending=False).head(10)
-    else: return jsonify({"success": True, "leaderboard": []})
-    
-    leaderboard = []
-    for _, row in leaders.iterrows():
-        p_email = row['peer_email']
-        score = int(row['points'])
-        user_match = df_users[df_users['email'].str.lower() == p_email]
-        name = user_match.iloc[0]['name'] if not user_match.empty else p_email.split('@')[0] 
-        leaderboard.append({"name": name, "score": score})
-    return jsonify({"success": True, "leaderboard": leaderboard})
+def download_unpair_reasons():
+    if request.json.get('password') != ADMIN_PASSWORD: return jsonify({'success': False}), 401
+    return Response(download_csv(UNPAIR_REASONS_KEY).to_csv(index=False), mimetype='text/csv')
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host='0.0.0.0')

@@ -11,13 +11,14 @@ const PeerFeedbackPage = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // Official LF4J Programs
+  // LF4J CA Programs Data
   const programs = {
     'VA': ['VA-1', 'VA-2', 'VA-3', 'VA-4', 'VA-5', 'VA-6'],
     'AiCE': ['AICE-1', 'AICE-2', 'AICE-3', 'AICE-4', 'AICE-5', 'AICE-6', 'AICE-7', 'AICE-8'],
     'PF': ['PF-1', 'PF-2', 'PF-3', 'PF-4', 'PF-5', 'PF-6', 'PF-7']
   };
 
+  // Ultra-Lean Form State
   const [formData, setFormData] = useState({
     email: '',
     program: '',
