@@ -227,6 +227,7 @@ const RegisterPage = () => {
                     <option value="Zoom">Zoom</option>
                     <option value="WhatsApp">WhatsApp</option>
                     <option value="Telegram">Telegram</option>
+                    <option value="Jitsi">Jitsi</option>
                 </select>
              </div>
              <div style={styles.half}>
