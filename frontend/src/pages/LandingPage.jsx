@@ -12,7 +12,7 @@ const VERTICALS = {
     url: 'https://alx-peerfinder.vercel.app', 
     programs: [
       { id: 'VA', name: 'Virtual Assistant', icon: '💻', courses: ['VA-1: VA Foundations & Professional Identity', 'VA-2: Core Professional & Soft Skills for VAs', 'VA-3: VA Tech Tools & Digital Productivity', 'VA-4: Essential VA Task Execution', 'VA-5: VA Career Readiness, Freelancing & Client Work', 'VA-6: VA Specialisation, Toolkit & Next Steps', 'Cohort 15'] },
-      { id: 'AiCE', name: 'AI Career Essentials', icon: '🤖', courses: ['AICE-1: AI Foundations for Work and Everyday Life', 'AICE-2: Prompting and Working Effectively with AI Models', 'AICE-3: Ethical and Responsible Use of AI at Work', 'AICE-4: Creating Professional Content with Generative AI', 'AICE-5: Data Analysis and Decision-Making with AI', 'AICE-6: Building an AI-Powered Professional Portfolio', 'AICE-7: Physical AI', 'AICE-8: Critical Thinking in the Age of AI'] },
+      { id: 'AiCE', name: 'AI Career Essentials', icon: '🤖', courses: ['AICE-1: AI Foundations for Work and Everyday Life', 'AICE-2: Prompting and Working Effectively with AI Models', 'AICE-3: Ethical and Responsible Use of AI at Work', 'AICE-4: Creating Professional Content with Generative AI', 'AICE-5: Data Analysis and Decision-Making with AI', 'AICE-6: Building an AI-Powered Professional Portfolio', 'Cohort 18'] },
       { id: 'PF', name: 'Prof. Foundations', icon: '👔', courses: ['Cohort 12', 'PF-1: Professional Foundations Onboarding', 'PF-2: Self-Leadership & Learning Foundations', 'PF-3: Data Literacy, Research, & Problem Framing', 'PF-4: Communication & Professional Writing', 'PF-5: Teamwork & Agile Workflows', 'PF-6: Human-Centered Design & Prototyping', 'PF-7: Career Exploration & Professional Identity'] }
     ]
   },
