@@ -443,6 +443,7 @@ def register():
         
     return jsonify({"success": True, "user_id": new_id})
 
+# --- FIXED MARKETPLACE LOGIC ---
 @app.route('/api/marketplace', methods=['GET'])
 @api_wrapper
 def marketplace():
@@ -453,16 +454,34 @@ def marketplace():
     df = download_csv()
     df_offers = df[(df['connection_type'] == 'offer') & (df['program'] == program)].copy()
     
+    if df_offers.empty:
+        return jsonify({'success': True, 'volunteers': []})
+
     df_offers['course_level'] = df_offers['course'].apply(get_course_num)
-    df_valid = df_offers[df_offers['course_level'] >= course_num]
+    df_valid = df_offers[df_offers['course_level'] >= course_num].copy()
     
-    df_valid = df_valid[pd.to_numeric(df_valid['current_load'], errors='coerce').fillna(0) < pd.to_numeric(df_valid['volunteer_capacity'], errors='coerce').fillna(3)]
+    df_valid['v_cap'] = pd.to_numeric(df_valid['volunteer_capacity'], errors='coerce').fillna(3)
+    df_valid['curr_l'] = pd.to_numeric(df_valid['current_load'], errors='coerce').fillna(0)
     
-    volunteers = df_valid[['id', 'pseudonym', 'country', 'timezone', 'availability', 'language', 'course', 'volunteer_capacity', 'current_load']].to_dict('records')
+    df_final = df_valid[df_valid['curr_l'] < df_valid['v_cap']].copy()
     
-    for v in volunteers: 
-        v['capacity'] = v.pop('volunteer_capacity')
-        v['name'] = v.pop('pseudonym') 
+    volunteers = []
+    for _, row in df_final.iterrows():
+        v_name = str(row.get('pseudonym', '')).strip()
+        if not v_name or v_name == 'nan': 
+            v_name = f"Volunteer {str(row['id'])[:4]}"
+            
+        volunteers.append({
+            'id': str(row['id']),
+            'name': v_name,
+            'country': str(row.get('country', 'Global')),
+            'timezone': str(row.get('timezone', 'UTC')),
+            'availability': str(row.get('availability', 'Flexible')),
+            'language': str(row.get('language', 'English')),
+            'course': str(row.get('course', '')),
+            'capacity': int(row['v_cap']),
+            'current_load': int(row['curr_l'])
+        })
         
     return jsonify({'success': True, 'volunteers': volunteers})
 
@@ -519,39 +538,53 @@ def auto_match_queue():
         
     return jsonify({"success": True, "message": f"Successfully processed the queue. Updated {len(unique_groups)} groups!"})
 
+# --- FIXED UNPAIRING LOGIC ---
 @app.route('/api/leave-group', methods=['POST'])
 @api_wrapper
 def leave_group(user_id=None):
     data = request.get_json() or {}
-    target_id = user_id or data.get('user_id')
+    target_id = str(user_id or data.get('user_id', '')).strip()
+    
+    if not target_id:
+        return jsonify({"error": "No User ID provided"}), 400
+        
     delete_profile = data.get('delete_profile', False)
     reason = data.get('reason', 'User Requested')
-    ghoster_email = data.get('ghoster_email', '').strip().lower()
+    ghoster_email = str(data.get('ghoster_email', '')).strip().lower()
     
     df = download_csv()
+    
+    # Safe User Look-up
     user_rows = df[df['id'] == target_id]
-    if user_rows.empty: return jsonify({"error": "User not found"}), 404
+    if user_rows.empty:
+        user_rows = df[df['email'].str.lower() == target_id.lower()]
+        
+    if user_rows.empty: 
+        return jsonify({"error": "User not found"}), 404
     
     idx = user_rows.index[0]
     user_row = df.loc[idx]
     
     # 1. Log to Unpair Reasons
-    df_reasons = download_csv(UNPAIR_REASONS_KEY)
-    new_reason = {'timestamp': datetime.now(timezone.utc).isoformat(), 'user_id': target_id, 'email': user_row['email'], 'program': user_row['program'], 'course': user_row['course'], 'reason': reason, 'ghoster_email': ghoster_email}
-    df_reasons = pd.concat([df_reasons, pd.DataFrame([new_reason])], ignore_index=True)
-    upload_csv(df_reasons, UNPAIR_REASONS_KEY)
+    try:
+        df_reasons = download_csv(UNPAIR_REASONS_KEY)
+        new_reason = {'timestamp': datetime.now(timezone.utc).isoformat(), 'user_id': target_id, 'email': user_row.get('email', ''), 'program': user_row.get('program', ''), 'course': user_row.get('course', ''), 'reason': reason, 'ghoster_email': ghoster_email}
+        df_reasons = pd.concat([df_reasons, pd.DataFrame([new_reason])], ignore_index=True)
+        upload_csv(df_reasons, UNPAIR_REASONS_KEY)
+    except Exception as e:
+        logger.error(f"Error saving unpair reasons: {e}")
 
     # 2. Gentle Nudge Engine
     if 'Ghosting' in reason and ghoster_email:
         no_show_df = download_csv(NO_SHOW_OBJECT_KEY)
-        new_no_show = {'timestamp': datetime.now(timezone.utc).isoformat(), 'reporter': user_row['email'], 'ghoster': ghoster_email}
+        new_no_show = {'timestamp': datetime.now(timezone.utc).isoformat(), 'reporter': user_row.get('email', ''), 'ghoster': ghoster_email}
         no_show_df = pd.concat([no_show_df, pd.DataFrame([new_no_show])], ignore_index=True)
         upload_csv(no_show_df, NO_SHOW_OBJECT_KEY)
         
         ghoster_rows = df[df['email'] == ghoster_email]
         for g_idx, g_user in ghoster_rows.iterrows():
             g_name = g_user.get('name', 'Learner')
-            g_prog = g_user.get('program', user_row['program'])
+            g_prog = g_user.get('program', user_row.get('program', ''))
             g_type = g_user.get('connection_type', '')
             
             subject = "PeerFinder - Session Attendance Notice"
@@ -572,7 +605,7 @@ def leave_group(user_id=None):
             df.at[rem_idx, 'group_id'] = ''
             df.at[rem_idx, 'timestamp'] = datetime.now(timezone.utc).isoformat()
             df.at[rem_idx, 'match_attempted'] = False
-        elif user_row['connection_type'] == 'offer':
+        elif user_row.get('connection_type') == 'offer':
              others_idx = remaining_members[remaining_members['id'] != target_id].index.tolist()
              for o_idx in others_idx:
                   df.at[o_idx, 'matched'] = False
