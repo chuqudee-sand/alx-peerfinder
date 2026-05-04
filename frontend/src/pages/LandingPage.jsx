@@ -11,45 +11,45 @@ const VERTICALS = {
     name: 'CAREER ACCELERATOR',
     url: 'https://alx-peerfinder.vercel.app', 
     programs: [
-      { id: 'VA', name: 'Virtual Assistant', icon: '💻', courses: ['VA-1: VA Foundations & Professional Identity', 'VA-2: Core Professional & Soft Skills for VAs', 'VA-3: VA Tech Tools & Digital Productivity', 'VA-4: Essential VA Task Execution', 'VA-5: VA Career Readiness, Freelancing & Client Work', 'VA-6: VA Specialisation, Toolkit & Next Steps', 'Cohort 15'] },
-      { id: 'AiCE', name: 'AI Career Essentials', icon: '🤖', courses: ['AICE-1: AI Foundations for Work and Everyday Life', 'AICE-2: Prompting and Working Effectively with AI Models', 'AICE-3: Ethical and Responsible Use of AI at Work', 'AICE-4: Creating Professional Content with Generative AI', 'AICE-5: Data Analysis and Decision-Making with AI', 'AICE-6: Building an AI-Powered Professional Portfolio', 'Cohort 18'] },
-      { id: 'PF', name: 'Prof. Foundations', icon: '👔', courses: ['Cohort 12', 'PF-1: Professional Foundations Onboarding', 'PF-2: Self-Leadership & Learning Foundations', 'PF-3: Data Literacy, Research, & Problem Framing', 'PF-4: Communication & Professional Writing', 'PF-5: Teamwork & Agile Workflows', 'PF-6: Human-Centered Design & Prototyping', 'PF-7: Career Exploration & Professional Identity'] }
+      { id: 'VA', name: 'Virtual Assistant', courses: ['VA-1: VA Foundations & Professional Identity', 'VA-2: Core Professional & Soft Skills for VAs', 'VA-3: VA Tech Tools & Digital Productivity', 'VA-4: Essential VA Task Execution', 'VA-5: VA Career Readiness, Freelancing & Client Work', 'VA-6: VA Specialisation, Toolkit & Next Steps', 'Cohort 15'] },
+      { id: 'AiCE', name: 'AI Career Essentials', courses: ['AICE-1: AI Foundations for Work and Everyday Life', 'AICE-2: Prompting and Working Effectively with AI Models', 'AICE-3: Ethical and Responsible Use of AI at Work', 'AICE-4: Creating Professional Content with Generative AI', 'AICE-5: Data Analysis and Decision-Making with AI', 'AICE-6: Building an AI-Powered Professional Portfolio', 'Cohort 18'] },
+      { id: 'PF', name: 'Prof. Foundations', courses: ['Cohort 12', 'PF-1: Professional Foundations Onboarding', 'PF-2: Self-Leadership & Learning Foundations', 'PF-3: Data Literacy, Research, & Problem Framing', 'PF-4: Communication & Professional Writing', 'PF-5: Teamwork & Agile Workflows', 'PF-6: Human-Centered Design & Prototyping', 'PF-7: Career Exploration & Professional Identity'] }
     ]
   },
   CREATIVE: {
     name: 'CREATIVE TECH',
     url: 'https://cts-peerfinder.vercel.app',
     programs: [
-      { id: 'CC', name: 'Content Creation', icon: '🎬', courses: ['CC-1: Content Identity & Concept Development', 'CC-2: Content Creation Workflow', 'CC-3: AI-Enhanced Content Creation', 'CC-4: Animation & Motion Graphics Foundations', 'CC-5: Business Foundations for Content Creators', 'CC-6: Distribution & Monetization'] },
-      { id: 'GD', name: 'Graphic Design', icon: '🎨', courses: ['GD-1: Graphic Design Software Fundamentals', 'GD-2: Foundations of Graphic Design', 'GD-3: Poster Design & Composition', 'GD-4: Typography & Grid Systems', 'GD-5: Editorial & Magazine Design', 'GD-6: Designing for Social Media', 'GD-7: Brand Strategy for Designers', 'GD-8: AI for Graphic Design', 'GD-9: Portfolio Development', 'GD-10: Freelancing & Business Skills'] }
+      { id: 'CC', name: 'Content Creation', courses: ['CC-1: Content Identity & Concept Development', 'CC-2: Content Creation Workflow', 'CC-3: AI-Enhanced Content Creation', 'CC-4: Animation & Motion Graphics Foundations', 'CC-5: Business Foundations for Content Creators', 'CC-6: Distribution & Monetization'] },
+      { id: 'GD', name: 'Graphic Design', courses: ['GD-1: Graphic Design Software Fundamentals', 'GD-2: Foundations of Graphic Design', 'GD-3: Poster Design & Composition', 'GD-4: Typography & Grid Systems', 'GD-5: Editorial & Magazine Design', 'GD-6: Designing for Social Media', 'GD-7: Brand Strategy for Designers', 'GD-8: AI for Graphic Design', 'GD-9: Portfolio Development', 'GD-10: Freelancing & Business Skills'] }
     ]
   },
   TECHLITE: {
     name: 'TECH LITE',
     url: 'https://alxs-techlite-peerfinder.vercel.app',
     programs: [
-      { id: 'DA', name: 'Data Analytics', icon: '📊', courses: ['DA-1: Data and AI Literacy Foundations', 'DA-2: Data Analytics with Spreadsheets', 'DA-3: SQL for Data', 'DA-4: PowerBI for Data Analytics', 'DA-5: Python for Data Analysis', 'DA-6: Statistical Reasoning', 'DA-7: Data Storytelling', 'DA-8: Advanced Excel', 'DA-9: Tableau for Analytics', 'DA-10: Data Analytics Capstone'] },
-      { id: 'DS', name: 'Data Science', icon: '🧪', courses: ['DS-1: Python I: Foundations', 'DS-2: Python II: Algorithmic Thinking', 'DS-3: Python III: EDA', 'DS-4: Machine Learning I', 'DS-5: Machine Learning II', 'DS-6: Machine Learning III', 'DS-7: NLP Foundations', 'DS-8: Deep Learning', 'DS-9: Computer Vision', 'DS-10: MLOps', 'DS-11: Data Science Capstone'] },
-      { id: 'SE', name: 'Software Engineering', icon: '⌨️', courses: ['SE-1: Intro to SE', 'SE-2: Programming Basics', 'SE-3: Algorithmic Thinking', 'SE-4: Efficient Software Design', 'SE-5: Generative AI Engineering', 'SE-6: AI-Native Programming', 'SE-7: Agentic Workflows', 'SE-8: Code Quality', 'SE-9: Modern Web Languages', 'SE-10: UI Design', 'SE-11: Component Architecture', 'SE-12: Modern Rendering', 'SE-13: QA & Testing', 'SE-14: Backend Foundations', 'SE-15: Databases', 'SE-16: API Engineering', 'SE-17: Backend Security', 'SE-18: High Performance Systems', 'SE-19: Cloud Native Architecture', 'SE-20: DevOps & Production'] },
-      { id: 'DE', name: 'Data Engineering', icon: '⚙️', courses: ['Cohort 4'] },
-      { id: 'CS', name: 'Cyber Security', icon: '🛡️', courses: ['Cohort 4'] }
+      { id: 'DA', name: 'Data Analytics', courses: ['DA-1: Data and AI Literacy Foundations', 'DA-2: Data Analytics with Spreadsheets', 'DA-3: SQL for Data', 'DA-4: PowerBI for Data Analytics', 'DA-5: Python for Data Analysis', 'DA-6: Statistical Reasoning', 'DA-7: Data Storytelling', 'DA-8: Advanced Excel', 'DA-9: Tableau for Analytics', 'DA-10: Data Analytics Capstone'] },
+      { id: 'DS', name: 'Data Science', courses: ['DS-1: Python I: Foundations', 'DS-2: Python II: Algorithmic Thinking', 'DS-3: Python III: EDA', 'DS-4: Machine Learning I', 'DS-5: Machine Learning II', 'DS-6: Machine Learning III', 'DS-7: NLP Foundations', 'DS-8: Deep Learning', 'DS-9: Computer Vision', 'DS-10: MLOps', 'DS-11: Data Science Capstone'] },
+      { id: 'SE', name: 'Software Engineering', courses: ['SE-1: Intro to SE', 'SE-2: Programming Basics', 'SE-3: Algorithmic Thinking', 'SE-4: Efficient Software Design', 'SE-5: Generative AI Engineering', 'SE-6: AI-Native Programming', 'SE-7: Agentic Workflows', 'SE-8: Code Quality', 'SE-9: Modern Web Languages', 'SE-10: UI Design', 'SE-11: Component Architecture', 'SE-12: Modern Rendering', 'SE-13: QA & Testing', 'SE-14: Backend Foundations', 'SE-15: Databases', 'SE-16: API Engineering', 'SE-17: Backend Security', 'SE-18: High Performance Systems', 'SE-19: Cloud Native Architecture', 'SE-20: DevOps & Production'] },
+      { id: 'DE', name: 'Data Engineering', courses: ['Cohort 4'] },
+      { id: 'CS', name: 'Cyber Security', courses: ['Cohort 4'] }
     ]
   },
   VENTURES: {
     name: 'ALX VENTURES',
     url: 'https://alxventuress-peerfinder.vercel.app',
     programs: [
-      { id: 'FA', name: 'Founders Academy', icon: '🏢', courses: ['FA-1: Startup Foundations', 'FA-2: MVP Building', 'FA-3: Startup Operations', 'FA-4: Investment Readiness'] },
-      { id: 'FLA', name: 'Freelance Academy', icon: '🌍', courses: ['FLA-1: Freelance Foundations', 'FLA-2: Client Acquisition', 'FLA-3: Scaling Your Business'] }
+      { id: 'FA', name: 'Founders Academy', courses: ['FA-1: Startup Foundations', 'FA-2: MVP Building', 'FA-3: Startup Operations', 'FA-4: Investment Readiness'] },
+      { id: 'FLA', name: 'Freelance Academy', courses: ['FLA-1: Freelance Foundations', 'FLA-2: Client Acquisition', 'FLA-3: Scaling Your Business'] }
     ]
   }
 };
 
 // --- SLIDESHOW DATA ---
 const slides = [
-  { id: 1, image: "/slide1.jpg", text: "It's a Match! 🎉", subtext: "Register and get paired instantly." },
-  { id: 2, image: "/slide2.jpg", text: "💬 Let's meet!", subtext: "Connect via WhatsApp immediately." },
-  { id: 3, image: "/slide3.jpg", text: "Collaborate & Grow 🚀", subtext: "Work on Milestones and projects together." },
+  { id: 1, image: "/slide1.jpg", text: "It's a Match!", subtext: "Register and get paired instantly." },
+  { id: 2, image: "/slide2.jpg", text: "Let's meet!", subtext: "Connect via WhatsApp immediately." },
+  { id: 3, image: "/slide3.jpg", text: "Collaborate & Grow", subtext: "Work on Milestones and projects together." },
   { id: 4, image: "/alx_white.png", text: "ALX Peer Finder", subtext: "Study together", isLogo: true }
 ];
 
@@ -89,11 +89,10 @@ const Leaderboard = () => {
 
   return (
     <div style={styles.leaderboardSection}>
-      <h2 style={{color: colors.primary.berkeleyBlue, fontSize: '2.5rem', marginBottom: '10px'}}>🌟 Community Support Stars</h2>
+      <h2 style={{color: colors.primary.berkeleyBlue, fontSize: '2.5rem', marginBottom: '10px'}}>Community Support Stars</h2>
       <div style={styles.podiumContainer}>
         {leaders[1] && (
           <motion.div initial={{ y: 50, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }} style={styles.podiumBlockWrap}>
-            <div style={styles.avatar}>🥈 🧑‍🎓</div>
             <div style={{...styles.podiumName, color: '#C0C0C0'}}>{leaders[1].name}</div>
             <div style={styles.podiumScore}>{leaders[1].score} pts</div>
             <div style={{...styles.podiumPillar, height: '90px', background: 'linear-gradient(to top, #e0e0e0, #f8f9fa)'}}>2nd</div>
@@ -101,7 +100,6 @@ const Leaderboard = () => {
         )}
         {leaders[0] && (
           <motion.div initial={{ y: 50, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }} style={{...styles.podiumBlockWrap, zIndex: 10}}>
-            <div style={{...styles.avatar, fontSize: '3.5rem'}}>🥇 🦸‍♂️</div>
             <div style={{...styles.podiumName, color: '#FFD700'}}>{leaders[0].name}</div>
             <div style={styles.podiumScore}>{leaders[0].score} pts</div>
             <div style={{...styles.podiumPillar, height: '120px', background: 'linear-gradient(to top, #ffeeba, #fff9e6)', border: '2px solid #FFD700'}}>1st</div>
@@ -109,7 +107,6 @@ const Leaderboard = () => {
         )}
         {leaders[2] && (
           <motion.div initial={{ y: 50, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }} style={styles.podiumBlockWrap}>
-            <div style={styles.avatar}>🥉 👩‍💻</div>
             <div style={{...styles.podiumName, color: '#CD7F32'}}>{leaders[2].name}</div>
             <div style={styles.podiumScore}>{leaders[2].score} pts</div>
             <div style={{...styles.podiumPillar, height: '70px', background: 'linear-gradient(to top, #f4e3d7, #fdf8f5)'}}>3rd</div>
@@ -215,7 +212,7 @@ const LandingPage = () => {
              <AnimatePresence>
                {menuOpen && (
                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={styles.dropdownMenu}>
-                   <div onClick={() => navigate('/admin')} style={styles.dropdownItem}>🔒 Admin Login</div>
+                   <div onClick={() => navigate('/admin')} style={styles.dropdownItem}>Admin Login</div>
                  </motion.div>
                )}
              </AnimatePresence>
@@ -251,14 +248,14 @@ const LandingPage = () => {
               {/* STEP 1: CROSS-VERTICAL PROGRAM PICKER */}
               {step === 1 && (
                 <>
-                  <h2 style={{color: colors.primary.berkeleyBlue, marginBottom: '30px'}}>First, select your program 🎓</h2>
+                  <h2 style={{color: colors.primary.berkeleyBlue, marginBottom: '30px'}}>First, select your program</h2>
                   <div style={styles.masterGrid}>
                     {Object.entries(VERTICALS).map(([key, vertical]) => (
                       <div key={key} style={styles.verticalColumn}>
                         <div style={styles.verticalHeader}>{vertical.name}</div>
                         {vertical.programs.map(p => (
                           <motion.button key={p.id} whileHover={{ x: 5 }} style={styles.programTile} onClick={() => handleProgramSelection(vertical, p)}>
-                            <span style={{marginRight: '10px'}}>{p.icon}</span> {p.name}
+                            {p.name}
                           </motion.button>
                         ))}
                       </div>
@@ -288,17 +285,17 @@ const LandingPage = () => {
                   <div style={styles.typeGrid}>
                     {selectedVertical.name === 'ALX VENTURES' ? (
                       <>
-                        <OptionCard title="Find / Be a Co-Founder 🤝" desc="(Build your team)" color={colors.primary.iris} onClick={() => handleOptionSelect('Find / Be a Co-Founder')} />
-                        <OptionCard title="Find a Study Buddy 📖" desc="(Accountability Partner)" color="#FF9800" onClick={() => handleOptionSelect('Find a Study Buddy')} />
-                        <OptionCard title="Offer Support 💁‍♀️" desc="(Volunteer)" color={colors.primary.springGreen} textColor={colors.primary.berkeleyBlue} onClick={() => handleOptionSelect('Offer Support')} />
-                        <OptionCard title="Request Support 🆘" desc="(Browse peer help)" color={colors.secondary.tomato} onClick={() => handleOptionSelect('Request Support')} />
+                        <OptionCard title="Find / Be a Co-Founder" desc="(Build your team)" color={colors.primary.iris} onClick={() => handleOptionSelect('Find / Be a Co-Founder')} />
+                        <OptionCard title="Find a Study Buddy" desc="(Accountability Partner)" color="#FF9800" onClick={() => handleOptionSelect('Find a Study Buddy')} />
+                        <OptionCard title="Offer Support" desc="(Volunteer)" color={colors.primary.springGreen} textColor={colors.primary.berkeleyBlue} onClick={() => handleOptionSelect('Offer Support')} />
+                        <OptionCard title="Request Support" desc="(Browse peer help)" color={colors.secondary.tomato} onClick={() => handleOptionSelect('Request Support')} />
                       </>
                     ) : (
                       <>
-                        <OptionCard title="Study Buddy 🤝" desc="(1-on-1 Partner)" color={colors.primary.iris} onClick={() => handleOptionSelect('find')} />
-                        <OptionCard title="Offer Support 💁‍♀️" desc="(Volunteer)" color={colors.primary.springGreen} textColor={colors.primary.berkeleyBlue} onClick={() => handleOptionSelect('offer')} />
-                        <OptionCard title="I Need Help 🆘" desc="(Browse peers)" color={colors.secondary.tomato} onClick={() => handleOptionSelect('need')} />
-                        <OptionCard title="Group Squad 👥" desc="(Join a team of 3-5)" color="#FF9800" onClick={() => handleOptionSelect('group')} />
+                        <OptionCard title="Study Buddy" desc="(1-on-1 Partner)" color={colors.primary.iris} onClick={() => handleOptionSelect('find')} />
+                        <OptionCard title="Offer Support" desc="(Volunteer)" color={colors.primary.springGreen} textColor={colors.primary.berkeleyBlue} onClick={() => handleOptionSelect('offer')} />
+                        <OptionCard title="I Need Help" desc="(Browse peers)" color={colors.secondary.tomato} onClick={() => handleOptionSelect('need')} />
+                        <OptionCard title="Group Squad" desc="(Join a team of 3-5)" color="#FF9800" onClick={() => handleOptionSelect('group')} />
                       </>
                     )}
                   </div>
@@ -324,11 +321,11 @@ const LandingPage = () => {
       </footer>
 
       {/* FEEDBACK SYSTEM */}
-      <button onClick={() => setShowFeedback(true)} style={styles.feedbackBtn}>Rate PeerFinder ⭐</button>
+      <button onClick={() => setShowFeedback(true)} style={styles.feedbackBtn}>Rate PeerFinder</button>
       {showFeedback && (
         <div style={styles.modalOverlay} onClick={() => setShowFeedback(false)}>
           <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
-            {feedbackSent ? <h3 style={{color: 'green'}}>Thank you! ❤️</h3> : (
+            {feedbackSent ? <h3 style={{color: 'green'}}>Thank you!</h3> : (
               <>
                 <h3>Rate your experience</h3>
                 <div style={{display:'flex', justifyContent:'center', fontSize:'2rem', cursor:'pointer', margin:'10px 0'}}>
@@ -389,13 +386,13 @@ const styles = {
   optionCard: { padding: '20px', borderRadius: '12px', border: 'none', cursor: 'pointer', textAlign: 'center' },
   backLink: { background: 'none', border: 'none', color: '#666', cursor: 'pointer', marginBottom: '15px', fontSize: '0.9rem' },
   infoSection: { padding: '4rem 2rem', background: '#d1dbf8', color: colors.primary.berkeleyBlue, textAlign: 'center' },
-  infoTitle: { fontSize: '1.5rem', fontWeight: '700', marginBottom: '1rem' }, infoText: { fontSize: '1.1rem', maxWidth: '700px', margin: '0 auto' },
+  infoTitle: { fontSize: '1.5rem', fontWeight: '700', marginBottom: '1rem' }, infoText: { fontSize: '1.1rem', maxWidth: '700px', margin: '0 auto', marginBottom: '2rem' },
   footer: { background: colors.primary.berkeleyBlue, color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: '2rem', fontSize: '0.9rem' },
   feedbackBtn: { position: 'fixed', bottom: '20px', right: '20px', padding: '15px 25px', borderRadius: '35px', border: 'none', background: colors.secondary.tomato, color: 'white', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', zIndex: 100 },
   leaderboardSection: { padding: '4rem 2rem', background: 'white', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
   podiumContainer: { display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '15px', height: '300px', marginTop: '40px', maxWidth: '600px', width: '100%' },
   podiumBlockWrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 },
-  avatar: { fontSize: '3rem', marginBottom: '10px' }, podiumName: { fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '5px' }, podiumScore: { fontSize: '0.9rem', color: '#666', marginBottom: '10px' }, podiumPillar: { width: '100%', borderRadius: '10px 10px 0 0', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '1.5rem', fontWeight: 'bold', color: '#555' }
+  podiumName: { fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '5px' }, podiumScore: { fontSize: '0.9rem', color: '#666', marginBottom: '10px' }, podiumPillar: { width: '100%', borderRadius: '10px 10px 0 0', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '1.5rem', fontWeight: 'bold', color: '#555' }
 };
 
 export default LandingPage;
