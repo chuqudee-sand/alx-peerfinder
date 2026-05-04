@@ -237,7 +237,7 @@ const LandingPage = () => {
             </div>
           </motion.div>
           <div style={styles.videoWrapper}>
-            <iframe src="https://www.youtube.com/embed/78uUL2WFo0k" title="PeerFinder Walkthrough" style={styles.iframe} allowFullScreen></iframe>
+            <iframe src="https://www.youtube.com/embed/CV95WoCsCj8" title="PeerFinder Walkthrough" style={styles.iframe} allowFullScreen></iframe>
           </div>
         </div>
       </div>
