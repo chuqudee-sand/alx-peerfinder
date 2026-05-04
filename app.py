@@ -36,9 +36,9 @@ AWS_S3_BUCKET = os.environ.get('AWS_S3_BUCKET', 'alx-peerfinder-storage-bucket')
 
 s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, region_name=AWS_DEFAULT_REGION)
 
-CSV_OBJECT_KEY = 'ca_peerfinder_data2.csv' 
-FEEDBACK_OBJECT_KEY = 'ca_tool_feedback2.csv'       
-SESSION_FEEDBACK_OBJECT_KEY = 'ca_session_feedback2.csv'
+CSV_OBJECT_KEY = 'ca_peerfinder_data.csv' 
+FEEDBACK_OBJECT_KEY = 'ca_tool_feedback.csv'       
+SESSION_FEEDBACK_OBJECT_KEY = 'ca_session_feedback.csv'
 NO_SHOW_OBJECT_KEY = 'ca_no_show_analysis2.csv'  # NEW: Replaces strict Blacklist
 UNPAIR_REASONS_KEY = 'unpair_reason_data.csv'    
 
