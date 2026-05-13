@@ -180,7 +180,8 @@ const LandingPage = () => {
       navigate(path, { state: { program: selectedProgram.id, course: selectedCourse, connectionType: type } });
     } else {
       const path = type === 'need' || type === 'Request Support' ? 'marketplace' : 'register';
-      const params = `?program=${selectedProgram.id}&course=${encodeURIComponent(selectedCourse)}&type=${encodeURIComponent(type)}`;
+      // FIX: Changed 'type' parameter back to 'connectionType' to match what the CT app expects!
+      const params = `?program=${selectedProgram.id}&course=${encodeURIComponent(selectedCourse)}&connectionType=${encodeURIComponent(type)}`;
       window.location.href = `${selectedVertical.url}/${path}${params}`;
     }
     resetModal();
