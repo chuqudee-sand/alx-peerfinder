@@ -17,6 +17,7 @@ from google.oauth2.credentials import Credentials
 import base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import urllib.parse
 
 # === CONFIGURATION ===
 load_dotenv()
@@ -36,11 +37,12 @@ AWS_S3_BUCKET = os.environ.get('AWS_S3_BUCKET', 'alx-peerfinder-storage-bucket')
 
 s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, region_name=AWS_DEFAULT_REGION)
 
-CSV_OBJECT_KEY = 'ca_peerfinder_data.csv' 
-FEEDBACK_OBJECT_KEY = 'ca_tool_feedback.csv'       
-SESSION_FEEDBACK_OBJECT_KEY = 'ca_session_feedback.csv'
-NO_SHOW_OBJECT_KEY = 'ca_no_show_analysis2.csv'  # NEW: Replaces strict Blacklist
-UNPAIR_REASONS_KEY = 'unpair_reason_data.csv'    
+# === MASTER FILE NAMES (ALL VERTICALS SHARE THESE NOW) ===
+CSV_OBJECT_KEY = 'alx-master-peerfinder.csv' 
+FEEDBACK_OBJECT_KEY = 'alx-master-feedback.csv'       
+SESSION_FEEDBACK_OBJECT_KEY = 'alx-master-session_feedback.csv'
+NO_SHOW_OBJECT_KEY = 'alx-master-no_show.csv'  
+UNPAIR_REASONS_KEY = 'alx-master-unpair_reasons.csv'    
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 
@@ -50,10 +52,13 @@ def load_google_token(env_var_name):
     try: return json.loads(token_str)
     except json.JSONDecodeError: return None
 
+# === MASTER PROGRAM CREDENTIALS (CA + CT) ===
 PROGRAM_CREDENTIALS = {
-    'VA': { 'email': os.environ.get('VA_EMAIL', 'vaprogram@alxafrica.com'), 'token': load_google_token('VA_GOOGLE_TOKEN') },
+    'VA': { 'email': os.environ.get('VA_EMAIL', 'virtualassistant@alxafrica.com'), 'token': load_google_token('VA_GOOGLE_TOKEN') },
     'AiCE': { 'email': os.environ.get('AICE_EMAIL', 'aice@alxafrica.com'), 'token': load_google_token('AICE_GOOGLE_TOKEN') },
-    'PF': { 'email': os.environ.get('PF_EMAIL', 'alxfoundations@alxafrica.com'), 'token': load_google_token('PF_GOOGLE_TOKEN') }
+    'PF': { 'email': os.environ.get('PF_EMAIL', 'foundations@alxafrica.com'), 'token': load_google_token('PF_GOOGLE_TOKEN') },
+    'CC': { 'email': os.environ.get('CC_EMAIL', 'contentcreation@alxafrica.com'), 'token': load_google_token('CC_GOOGLE_TOKEN') },
+    'GD': { 'email': os.environ.get('GD_EMAIL', 'graphicdesign@alxafrica.com'), 'token': load_google_token('GD_GOOGLE_TOKEN') }
 }
 SCOPES = ['https://www.googleapis.com/auth/gmail.send']
 
@@ -62,9 +67,11 @@ def validate_registration(data):
     if not data.get('name') or len(data['name'].strip()) < 2 or len(data['name']) > 100: errors.append("Name must be between 2 and 100 characters")
     if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', data.get('email', '')): errors.append("Invalid email address format")
     if not re.match(r'^\+?[1-9]\d{1,14}$', data.get('phone', '').replace(' ', '')): errors.append("Invalid phone number")
-    if data.get('program') not in ['VA', 'AiCE', 'PF']: errors.append("Invalid program selected")
-    if data.get('connection_type') not in ['find', 'offer', 'need', 'group']: errors.append("Invalid connection type")
     
+    # 🔴 VALIDATION NOW ACCEPTS ALL 5 PROGRAMS 🔴
+    if data.get('program') not in ['VA', 'AiCE', 'PF', 'CC', 'GD']: errors.append("Invalid program selected")
+    
+    if data.get('connection_type') not in ['find', 'offer', 'need', 'group']: errors.append("Invalid connection type")
     if data.get('connection_type') == 'offer' and not data.get('pseudonym'):
          errors.append("A pseudonym is required for volunteers")
     return errors
@@ -79,7 +86,8 @@ def api_wrapper(f):
     return wrapper
 
 def get_gmail_service(program_name):
-    if not program_name or program_name not in PROGRAM_CREDENTIALS: program_name = 'PF' 
+    # Fallback to AiCE if something goes wrong
+    if not program_name or program_name not in PROGRAM_CREDENTIALS: program_name = 'AiCE' 
     config = PROGRAM_CREDENTIALS[program_name]
     try:
         creds = Credentials.from_authorized_user_info(config['token'], SCOPES)
@@ -112,6 +120,9 @@ def send_email(to, subject, body, program_name, is_html=True):
         service.users().messages().send(userId='me', body={'raw': raw}).execute()
         return True
     except Exception: return False
+
+# ... [THE REST OF YOUR CA MATCHING LOGIC AND ROUTES GO HERE EXACTLY AS THEY WERE] ...
+# (download_csv, upload_csv, perform_matching, notify_group_match, /api/register, /api/status, etc.)
 
 def notify_group_match(df, group_id):
     grp = df[df['group_id'] == group_id]
