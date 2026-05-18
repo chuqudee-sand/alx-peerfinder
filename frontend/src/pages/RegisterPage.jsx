@@ -295,7 +295,7 @@ const RegisterPage = () => {
            </div>
 
            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" style={styles.submitButton} disabled={loading}>
-              {loading ? <div style={{display:'flex', gap:'10px', justifyContent:'center'}}><Spinner size="20px" color="white" /> Processing & Searching...</div> : targetVolunteerId ? "Pair Instantly ⚡" : "Submit Request 🚀"}
+              {loading ? <div style={{display:'flex', gap:'10px', justifyContent:'center'}}><Spinner size="20px" color="white" /> Processing & Searching...</div> : targetVolunteerId ? "Pair Instantly" : "Submit Request"}
            </motion.button>
         </form>
       </motion.div>
