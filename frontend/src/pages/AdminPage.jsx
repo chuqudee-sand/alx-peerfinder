@@ -218,10 +218,10 @@ const AdminPage = () => {
           </select>
         </div>
         <div style={{display:'flex', gap:'10px', flexWrap: 'wrap'}}>
-          <button onClick={downloadCSV} style={styles.btnSecondary}>📥 Main Data</button>
-          <button onClick={downloadFeedback} style={{...styles.btnSecondary, background: colors.secondary.tomato, color:'white'}}>📥 Tool Feedback</button>
-          <button onClick={downloadSessionFeedback} style={{...styles.btnSecondary, background: colors.primary.springGreen, color: colors.primary.berkeleyBlue}}>📥 Session Ratings</button>
-          <button onClick={downloadUnpairReasons} style={{...styles.btnSecondary, background: '#FF9800', color: 'white'}}>📥 Disconnects</button>
+          <button onClick={downloadCSV} style={styles.btnSecondary}>Main Data</button>
+          <button onClick={downloadFeedback} style={{...styles.btnSecondary, background: colors.secondary.tomato, color:'white'}}>Tool Feedback</button>
+          <button onClick={downloadSessionFeedback} style={{...styles.btnSecondary, background: colors.primary.springGreen, color: colors.primary.berkeleyBlue}}>Session Ratings</button>
+          <button onClick={downloadUnpairReasons} style={{...styles.btnSecondary, background: '#FF9800', color: 'white'}}>Disconnects</button>
         </div>
       </div>
       
