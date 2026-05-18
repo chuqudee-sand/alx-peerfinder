@@ -148,7 +148,7 @@ const VolunteerMarketplace = () => {
                   </div>
 
                   <button onClick={() => handlePairClick(vol.id)} style={styles.pairBtn}>
-                    Get help from {pseudonym} ⚡
+                    Get help from {pseudonym}
                   </button>
                 </motion.div>
               );
