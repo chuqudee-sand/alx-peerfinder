@@ -13,12 +13,12 @@ const VERTICALS = {
     programs: [
       { id: 'VA', name: 'Virtual Assistant', courses: ['VA-1: VA Foundations & Professional Identity', 'VA-2: Core Professional & Soft Skills for VAs', 'VA-3: VA Tech Tools & Digital Productivity', 'VA-4: Essential VA Task Execution', 'VA-5: VA Career Readiness, Freelancing & Client Work', 'VA-6: VA Specialisation, Toolkit & Next Steps', 'Cohort 15'] },
       { id: 'AiCE', name: 'AI Career Essentials', courses: ['AICE-1: AI Foundations for Work and Everyday Life', 'AICE-2: Prompting and Working Effectively with AI Models', 'AICE-3: Ethical and Responsible Use of AI at Work', 'AICE-4: Creating Professional Content with Generative AI', 'AICE-5: Data Analysis and Decision-Making with AI', 'AICE-6: Building an AI-Powered Professional Portfolio', 'Cohort 18'] },
-      { id: 'PF', name: 'Prof. Foundations', courses: ['Cohort 12', 'PF-1: Professional Foundations Onboarding', 'PF-2: Self-Leadership & Learning Foundations', 'PF-3: Data Literacy, Research, & Problem Framing', 'PF-4: Communication & Professional Writing', 'PF-5: Teamwork & Agile Workflows', 'PF-6: Human-Centered Design & Prototyping', 'PF-7: Career Exploration & Professional Identity'] }
+      { id: 'PF', name: 'Prof. Foundations', courses: ['Cohort 12', 'PF-1: Self-Leadership & Learning Foundations', 'PF-2: Data Literacy, Research, & Problem Framing', 'PF-3: Communication & Professional Writing', 'PF-4: Teamwork & Agile Workflows', 'PF-5: Career Exploration & Professional Identity'] }
     ]
   },
   CREATIVE: {
     name: 'CREATIVE TECH',
-    url: 'https://alx-peerfinder.vercel.app', // <-- CHANGED: Now internal, treating it as part of CA!
+    url: 'https://alx-peerfinder.vercel.app',
     programs: [
       { id: 'CC', name: 'Content Creation', courses: ['CC-1: Content Identity & Concept Development', 'CC-2: Content Creation Workflow', 'CC-3: AI-Enhanced Content Creation', 'CC-4: Animation & Motion Graphics Foundations', 'CC-5: Business Foundations for Content Creators'] },
       { id: 'GD', name: 'Graphic Design', courses: ['GD-1: Graphic Design Software Fundamentals', 'GD-2: Foundations of Graphic Design & Visual Language', 'GD-3: Poster Design & Visual Composition', 'GD-4: Typography & Grid Systems', 'GD-5: Editorial & Magazine Design', 'GD-6: Designing for Social Media', 'GD-7: Brand Strategy for Designers', 'GD-8: AI for Graphic Design', 'GD-9: Graphic Design Portfolio Development', 'GD-10: Freelancing & Business Skills for Graphic Design'] }
@@ -123,7 +123,7 @@ const LandingPage = () => {
   
   // Modal Control
   const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState('REGISTER'); 
+  const [modalMode, setModalMode] = useState('REGISTER'); // 'REGISTER', 'STATUS', or 'FEEDBACK'
   const [step, setStep] = useState(1);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -152,6 +152,7 @@ const LandingPage = () => {
     setStep(1);
   };
 
+  // --- TRAFFIC CONTROLLER REDIRECT ---
   const handleProgramSelection = (vertical, program) => {
     setSelectedVertical(vertical);
     setSelectedProgram(program);
@@ -167,6 +168,7 @@ const LandingPage = () => {
         else window.location.href = `${vertical.url}/peer-feedback`;
         resetModal();
     } else {
+        // REGISTER FLOW: Move to Step 2
         setStep(2);
     }
   };
@@ -178,6 +180,7 @@ const LandingPage = () => {
       navigate(path, { state: { program: selectedProgram.id, course: selectedCourse, connectionType: type } });
     } else {
       const path = type === 'need' || type === 'Request Support' ? 'marketplace' : 'register';
+      // FIX: Changed 'type' parameter back to 'connectionType' to match what the CT app expects!
       const params = `?program=${selectedProgram.id}&course=${encodeURIComponent(selectedCourse)}&connectionType=${encodeURIComponent(type)}`;
       window.location.href = `${selectedVertical.url}/${path}${params}`;
     }
@@ -194,6 +197,7 @@ const LandingPage = () => {
 
   return (
     <div style={styles.container}>
+      {/* NAVBAR */}
       <nav style={styles.navbar}>
         <div style={styles.navLeft}>
           <img src="/alx_icon-300x169.png" alt="ALX" style={{height: '35px', marginRight: '10px'}} /> 
@@ -217,6 +221,7 @@ const LandingPage = () => {
         </div>
       </nav>
 
+      {/* HERO SECTION */}
       <div style={styles.heroSection}>
         <HeroSlideshow />
         <div style={styles.heroForeground}>
@@ -235,11 +240,13 @@ const LandingPage = () => {
         </div>
       </div>
 
+      {/* MODAL SYSTEM */}
       <AnimatePresence>
         {showModal && (
           <motion.div style={styles.modalOverlay} onClick={resetModal}>
             <motion.div style={{...styles.modalCard, maxWidth: step === 1 ? '1000px' : '600px'}} onClick={e => e.stopPropagation()}>
               
+              {/* STEP 1: CROSS-VERTICAL PROGRAM PICKER */}
               {step === 1 && (
                 <>
                   <h2 style={{color: colors.primary.berkeleyBlue, marginBottom: '30px'}}>First, select your program</h2>
@@ -258,6 +265,7 @@ const LandingPage = () => {
                 </>
               )}
 
+              {/* STEP 2: COURSE (ONLY FOR REGISTER MODE) */}
               {step === 2 && (
                 <>
                   <button style={styles.backLink} onClick={() => setStep(1)}>&larr; Back</button>
@@ -270,6 +278,7 @@ const LandingPage = () => {
                 </>
               )}
 
+              {/* STEP 3: CONNECTION TYPE (ONLY FOR REGISTER MODE) */}
               {step === 3 && (
                 <>
                   <button style={styles.backLink} onClick={() => setStep(2)}>&larr; Back</button>
@@ -312,6 +321,7 @@ const LandingPage = () => {
         © 2026 Peer Finder. All rights reserved.
       </footer>
 
+      {/* FEEDBACK SYSTEM */}
       <button onClick={() => setShowFeedback(true)} style={styles.feedbackBtn}>Rate PeerFinder</button>
       {showFeedback && (
         <div style={styles.modalOverlay} onClick={() => setShowFeedback(false)}>
@@ -333,6 +343,7 @@ const LandingPage = () => {
   );
 };
 
+// --- STYLES ---
 const OptionCard = ({ title, desc, color, textColor='white', onClick }) => (
   <motion.button whileHover={{scale: 1.02}} onClick={onClick} style={{...styles.optionCard, background: color, color: textColor}}>
     <div style={{fontWeight: 'bold', fontSize: '1.1rem'}}>{title}</div> <div style={{fontSize: '0.85rem', opacity: 0.9}}>{desc}</div>
