@@ -214,7 +214,8 @@ const AdminPage = () => {
         <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
           <h1 style={{color: 'white', margin: 0}}>Admin</h1>
           <select value={programFilter} onChange={e => { setProgramFilter(e.target.value); setCurrentGroupPage(1); }} style={styles.programSelect}>
-            <option value="All">All Programs</option><option value="VA">VA</option><option value="AiCE">AiCE</option><option value="PF">PF</option>
+            <option value="All">All Programs</option><option value="VA">Virtual Assistant</option><option value="AiCE">AI Career Essentials</option>
+            <option value="PF">Professional Foundation</option><option value="CC">Content Creation</option><option value="GD">Graphic Design</option>
           </select>
         </div>
         <div style={{display:'flex', gap:'10px', flexWrap: 'wrap'}}>
