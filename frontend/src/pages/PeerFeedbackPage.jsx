@@ -14,8 +14,10 @@ const PeerFeedbackPage = () => {
   // LF4J CA Programs Data
   const programs = {
     'VA': ['VA-1', 'VA-2', 'VA-3', 'VA-4', 'VA-5', 'VA-6'],
-    'AiCE': ['AICE-1', 'AICE-2', 'AICE-3', 'AICE-4', 'AICE-5', 'AICE-6', 'AICE-7', 'AICE-8'],
-    'PF': ['PF-1', 'PF-2', 'PF-3', 'PF-4', 'PF-5', 'PF-6', 'PF-7']
+    'AiCE': ['AICE-1', 'AICE-2', 'AICE-3', 'AICE-4', 'AICE-5', 'AICE-6'],
+    'PF': ['PF-1', 'PF-2', 'PF-3', 'PF-4', 'PF-5'],
+    'CC': ['CC-1', 'CC-2', 'CC-3', 'CC-4', 'CC-5'],
+    'GD': ['GD-1', 'GD-2', 'GD-3', 'GD-4', 'GD-5', 'GD-6', 'GD-7', 'GD-8', 'GD-9', 'GD-10']
   };
 
   // Ultra-Lean Form State
