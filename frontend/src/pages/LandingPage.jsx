@@ -11,8 +11,8 @@ const VERTICALS = {
     name: 'CAREER ACCELERATOR',
     url: 'https://alx-peerfinder.vercel.app', 
     programs: [
-      { id: 'VA', name: 'Virtual Assistant', courses: ['VA-1: VA Foundations & Professional Identity', 'VA-2: Core Professional & Soft Skills for VAs', 'VA-3: VA Tech Tools & Digital Productivity', 'VA-4: Essential VA Task Execution', 'VA-5: VA Career Readiness, Freelancing & Client Work', 'VA-6: VA Specialisation, Toolkit & Next Steps', 'Cohort 15'] },
-      { id: 'AiCE', name: 'AI Career Essentials', courses: ['AICE-1: AI Foundations for Work and Everyday Life', 'AICE-2: Prompting and Working Effectively with AI Models', 'AICE-3: Ethical and Responsible Use of AI at Work', 'AICE-4: Creating Professional Content with Generative AI', 'AICE-5: Data Analysis and Decision-Making with AI', 'AICE-6: Building an AI-Powered Professional Portfolio', 'Cohort 18'] },
+      { id: 'VA', name: 'Virtual Assistant', courses: ['VA-1: VA Foundations & Professional Identity', 'VA-2: Core Professional & Soft Skills for VAs', 'VA-3: VA Tech Tools & Digital Productivity', 'VA-4: Essential VA Task Execution', 'VA-5: VA Career Readiness, Freelancing & Client Work', 'VA-6: VA Specialisation, Toolkit & Next Steps'] },
+      { id: 'AiCE', name: 'AI Career Essentials', courses: ['AICE-1: AI Foundations for Work and Everyday Life', 'AICE-2: Prompting and Working Effectively with AI Models', 'AICE-3: Ethical and Responsible Use of AI at Work', 'AICE-4: Creating Professional Content with Generative AI', 'AICE-5: Data Analysis and Decision-Making with AI', 'AICE-6: Building an AI-Powered Professional Portfolio'] },
       { id: 'PF', name: 'Prof. Foundations', courses: ['Cohort 12', 'PF-1: Self-Leadership & Learning Foundations', 'PF-2: Data Literacy, Research, & Problem Framing', 'PF-3: Communication & Professional Writing', 'PF-4: Teamwork & Agile Workflows', 'PF-5: Career Exploration & Professional Identity'] }
     ]
   },
