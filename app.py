@@ -265,115 +265,141 @@ def get_course_num(course_str):
     except: return 0
 
 # === THE SMART MATCHING ENGINE ===
-def perform_matching(df, user_id):
-    user_rows = df[df['id'] == user_id]
-    if user_rows.empty: return df, False, None
+
+def perform_matching(df, user_id=None):
+    if df.empty: return False, 0, 0
     
-    idx = user_rows.index[0]
-    user = user_rows.iloc[0]
-    df.at[idx, 'match_attempted'] = True
+    # 1. Identify existing incomplete groups to allow gradual matching
+    matched_users = df[df['matched'] == True]
+    group_counts = matched_users['group_id'].value_counts()
     
-    if bool(user['matched']): return df, False, None
-
-    updated = False
-    gid = f"group-{uuid.uuid4()}"
-    iso = datetime.now(timezone.utc).isoformat()
-    
-    u_program = normalize_str(user['program'])
-    u_course = normalize_str(user['course'])
-    u_country = normalize_str(user['country'])
-    
-    program_pool = df[(df['matched'] == False) & (df['program'].apply(normalize_str) == u_program) & (df['course'].apply(normalize_str) == u_course) & (df['id'] != user_id)]
-
-    if user['connection_type'] in ['find', 'group']:
-        size = str(user['group_size']).replace('.0', '').strip() if pd.notna(user['group_size']) and user['group_size'] else '2'
-        base_pool = program_pool[(program_pool['connection_type'].isin(['find', 'group'])) & (program_pool['group_size'].astype(str).str.replace('.0', '', regex=False).str.strip() == size)].copy()
-
-        needed = int(size) - 1
-        if len(base_pool) >= needed:
-             u_tz = parse_tz_offset(user['timezone'])
-             best_match_indices = []
-
-             for pool_idx, p_user in base_pool.iterrows():
-                  p_tz = parse_tz_offset(p_user['timezone'])
-                  tz_diff = abs(u_tz - p_tz)
-
-                  if user['country'] == p_user['country'] and user['match_preference'] in ['Country', 'Timezone']:
-                      best_match_indices.append(pool_idx)
-                  elif u_tz == p_tz and user['match_preference'] in ['Timezone', 'Buffer']:
-                      best_match_indices.append(pool_idx)
-                  elif tz_diff <= 2 and user['match_preference'] == 'Buffer':
-                      best_match_indices.append(pool_idx)
-                  elif user['match_preference'] == 'Global' and p_user['match_preference'] == 'Global':
-                      best_match_indices.append(pool_idx)
-                  
-                  if len(best_match_indices) == needed: break
-
-             if len(best_match_indices) == needed:
-                  all_idx = [idx] + best_match_indices
-                  df.loc[all_idx, 'matched'] = True
-                  df.loc[all_idx, 'group_id'] = gid
-                  df.loc[all_idx, 'matched_timestamp'] = iso
-                  df.loc[all_idx, 'unpair_reason'] = '' 
-                  updated = True
-            
-    elif user['connection_type'] == 'offer':
-        capacity = int(float(user.get('volunteer_capacity', 3))) if pd.notna(user.get('volunteer_capacity')) and user.get('volunteer_capacity') not in ['', 'None'] else 3
-        pool = program_pool[(program_pool['connection_type'] == 'need')].copy()
+    incomplete_groups = {}
+    for gid, count in group_counts.items():
+        if pd.isna(gid) or not str(gid).startswith("group-"): continue
+        members = matched_users[matched_users['group_id'] == gid]
+        if members.empty: continue
         
-        if not pool.empty:
-            matched_peers = pool.head(capacity)
-            all_idx = [idx] + matched_peers.index.tolist()
-            df.loc[all_idx, 'matched'] = True
-            df.loc[all_idx, 'group_id'] = gid
-            df.loc[all_idx, 'matched_timestamp'] = iso
-            df.loc[all_idx, 'unpair_reason'] = ''
-            df.at[idx, 'current_load'] = len(matched_peers)
-            updated = True
-            
-    elif user['connection_type'] == 'need':
-        course_num = get_course_num(user['course'])
-        active_vols = df[(df['connection_type'] == 'offer') & (df['program'].apply(normalize_str) == u_program) & (df['matched'] == True)]
-        joined_existing = False
+        try:
+            target_size = int(members.iloc[0]['group_size'])
+            if count < target_size:
+                incomplete_groups[gid] = {
+                    'members': [row for _, row in members.iterrows()],
+                    'target_size': target_size
+                }
+        except:
+            pass
+
+    unmatched = df[df['matched'] == False].copy()
+    if user_id:
+        if user_id not in unmatched['id'].values: return False, 0, 0
+        unmatched = pd.concat([unmatched[unmatched['id'] == user_id], unmatched[unmatched['id'] != user_id]])
         
-        for v_idx, vol in active_vols.iterrows():
-            v_cap = int(float(vol.get('volunteer_capacity', 3))) if pd.notna(vol.get('volunteer_capacity')) and vol.get('volunteer_capacity') not in ['', 'None'] else 3
-            v_group_id = vol['group_id']
-            if not v_group_id: continue
+    matched_any = False
+    groups_formed = 0
+    pairs_formed = 0
+
+    unmatched = unmatched.sort_values(by='timestamp')
+    new_matches = []
+
+    def are_compatible(u1, u2):
+        if u1.get('program') != u2.get('program'): return False
+        try:
+            if int(u1.get('group_size', 2)) != int(u2.get('group_size', 2)): return False
+        except:
+            return False
+        
+        def satisfies(pref, tz1, c1, tz2, c2):
+            pref = str(pref).lower()
+            if "global" in pref: 
+                return True
+            if "country" in pref: 
+                return str(c1).strip() == str(c2).strip()
+            if "time zone" in pref or "timezone" in pref or "buffer" in pref:
+                # Same country satisfies timezone buffer automatically
+                if str(c1).strip() == str(c2).strip(): 
+                    return True
+                try:
+                    return abs(float(tz1) - float(tz2)) <= 2
+                except: 
+                    return False
+            return False
+
+        u1_sat = satisfies(u1.get('match_preference'), u1.get('time_zone_offset'), u1.get('country'), u2.get('time_zone_offset'), u2.get('country'))
+        u2_sat = satisfies(u2.get('match_preference'), u2.get('time_zone_offset'), u2.get('country'), u1.get('time_zone_offset'), u1.get('country'))
+        return u1_sat and u2_sat
+
+    for idx, user in unmatched.iterrows():
+        if user['id'] in [m['id'] for m in new_matches]: continue
+        
+        assigned_to_existing = False
+        try:
+            target_size = int(user.get('group_size', 2))
+        except:
+            target_size = 2
+
+        # Step 1: Try adding the user to an incomplete group
+        for gid, group in incomplete_groups.items():
+            if len(group['members']) >= group['target_size']: continue
+            if group['target_size'] != target_size: continue
             
-            if get_course_num(vol['course']) >= course_num:
-                current_needers = len(df[(df['group_id'] == v_group_id) & (df['connection_type'] == 'need')])
-                if current_needers < v_cap:
-                    df.at[idx, 'matched'] = True
-                    df.at[idx, 'group_id'] = v_group_id
-                    df.at[idx, 'matched_timestamp'] = iso
-                    df.at[idx, 'unpair_reason'] = ''
-                    df.at[v_idx, 'current_load'] = current_needers + 1
-                    updated = True
-                    gid = v_group_id
-                    joined_existing = True
+            compatible_with_all = True
+            for member in group['members']:
+                if not are_compatible(user, member):
+                    compatible_with_all = False
                     break
-                
-        if not joined_existing:
-            unmatched_vols = df[(df['matched'] == False) & (df['connection_type'] == 'offer') & (df['program'].apply(normalize_str) == u_program) & (df['id'] != user_id)]
             
-            for v_idx, vol in unmatched_vols.iterrows():
-                if get_course_num(vol['course']) >= course_num:
-                     v_cap = int(float(vol.get('volunteer_capacity', 3))) if pd.notna(vol.get('volunteer_capacity')) and vol.get('volunteer_capacity') not in ['', 'None'] else 3
-                     
-                     other_needers = program_pool[(program_pool['connection_type'] == 'need') & (program_pool['id'] != user_id)].copy()
-                     matched_other_needers = other_needers.head(v_cap - 1)
-                     
-                     all_idx = [idx, v_idx] + matched_other_needers.index.tolist()
-                     df.loc[all_idx, 'matched'] = True
-                     df.loc[all_idx, 'group_id'] = gid
-                     df.loc[all_idx, 'matched_timestamp'] = iso
-                     df.loc[all_idx, 'unpair_reason'] = ''
-                     df.at[v_idx, 'current_load'] = len(matched_other_needers) + 1
-                     updated = True
-                     break
+            if compatible_with_all:
+                iso = datetime.now(timezone.utc).isoformat()
+                new_matches.append({'id': user['id'], 'group_id': gid, 'timestamp': iso})
+                group['members'].append(user)
+                assigned_to_existing = True
+                matched_any = True
+                break
+                
+        if assigned_to_existing: continue
+        
+        # Step 2: Try to form a new group (or pair) gradually
+        candidates = unmatched[~unmatched['id'].isin([m['id'] for m in new_matches] + [user['id']])]
+        
+        valid_candidates = []
+        for _, cand in candidates.iterrows():
+            if are_compatible(user, cand):
+                compatible_with_others = True
+                for vc in valid_candidates:
+                    if not are_compatible(cand, vc):
+                        compatible_with_others = False
+                        break
+                if compatible_with_others:
+                    valid_candidates.append(cand)
+                    # Break early as soon as we meet the exact requested size
+                    if len(valid_candidates) >= target_size - 1:
+                        break
 
-    return df, updated, gid
+        # Gradual matching: If we found AT LEAST ONE compatible person, form a partial group immediately!
+        if len(valid_candidates) >= 1: 
+            group_members = [user] + valid_candidates
+            gid = f"group-{uuid.uuid4()}"
+            iso = datetime.now(timezone.utc).isoformat()
+            
+            for member in group_members:
+                new_matches.append({'id': member['id'], 'group_id': gid, 'timestamp': iso})
+            
+            # Register it as an incomplete group so others can join in the same run
+            incomplete_groups[gid] = {
+                'members': group_members,
+                'target_size': target_size
+            }
+            
+            matched_any = True
+            if target_size == 2: pairs_formed += 1
+            else: groups_formed += 1
+
+    if matched_any:
+        for match in new_matches:
+            df.loc[df['id'] == match['id'], ['matched', 'group_id', 'matched_timestamp']] = [True, match['group_id'], match['timestamp']]
+            
+    return matched_any, groups_formed, pairs_formed
+
 
 # === ROUTES ===
 
@@ -524,30 +550,46 @@ def status(identifier):
         
     return jsonify(res_list)
 
+
 @app.route('/api/admin/auto-match-queue', methods=['POST'])
 @api_wrapper
 def auto_match_queue():
     data = request.get_json()
-    if data.get('password') != ADMIN_PASSWORD: return jsonify({"error": "Unauthorized"}), 401
+    if data.get('password') != ADMIN_PASSWORD: 
+        return jsonify({"error": "Unauthorized"}), 401
     
-    df = download_csv()
-    unattempted = df[(df['matched'] == False)]
-    
-    if unattempted.empty:
-        return jsonify({"success": True, "message": "Queue is completely clean! No unattempted learners found."})
+    try:
+        df = download_csv()
+        old_unmatched = df[df['matched'] == False]['id'].tolist()
         
-    groups_formed = []
-    for uid in unattempted['id'].tolist():
-        current_check = df.loc[df['id'] == uid]
-        if not current_check.empty and bool(current_check.iloc[0]['matched']): continue
-        df, updated, gid = perform_matching(df, uid)
-        if updated: groups_formed.append(gid)
+        matched_any, g_formed, p_formed = perform_matching(df)
+        
+        if matched_any:
+            upload_csv(df)
             
-    upload_csv(df)
-    unique_groups = set(groups_formed)
-    for gid in unique_groups: notify_group_match(df, gid)
-        
-    return jsonify({"success": True, "message": f"Successfully processed the queue. Updated {len(unique_groups)} groups!"})
+            # Notify newly matched learners and updated groups
+            new_matched = df[(df['id'].isin(old_unmatched)) & (df['matched'] == True)]
+            for gid in new_matched['group_id'].unique():
+                notify_group_match(df, gid)
+                
+            total_matched = len(new_matched)
+            msg = f"Auto-match successful! {total_matched} learners were matched. "
+            if g_formed > 0 or p_formed > 0:
+                msg += f"Formed/Updated {g_formed} groups and {p_formed} pairs."
+            else:
+                msg += "Learners were gradually added to existing incomplete groups."
+                
+            return jsonify({'success': True, 'message': msg})
+        else:
+            return jsonify({
+                'success': True, 
+                'message': 'There are no peers to match at this time. The queue might be empty, groups are not yet complete, or the peers in the list have completely different preferences.'
+            })
+    except Exception as e:
+        logger.error(f"Error in auto_match_queue: {str(e)}")
+        # Adding a fail-safe so frontend doesn't throw a generic Axios exception
+        return jsonify({'success': False, 'message': f'Wait, something went wrong on the server: {str(e)}'})
+
 
 # --- FIXED UNPAIRING LOGIC ---
 @app.route('/api/leave-group', methods=['POST'])
