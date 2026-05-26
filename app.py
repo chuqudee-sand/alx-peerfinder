@@ -44,7 +44,7 @@ SESSION_FEEDBACK_OBJECT_KEY = 'alx-master-session_feedback.csv'
 NO_SHOW_OBJECT_KEY = 'alx-master-no_show.csv'  
 UNPAIR_REASONS_KEY = 'alx-master-unpair_reasons.csv'    
 
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 
 def load_google_token(env_var_name):
     token_str = os.environ.get(env_var_name)
