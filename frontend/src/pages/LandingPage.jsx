@@ -284,21 +284,10 @@ const LandingPage = () => {
                   <button style={styles.backLink} onClick={() => setStep(2)}>&larr; Back</button>
                   <h2 style={{color: colors.primary.berkeleyBlue}}>How can we connect you?</h2>
                   <div style={styles.typeGrid}>
-                    {selectedVertical.name === 'ALX VENTURES' ? (
-                      <>
-                        <OptionCard title="Find / Be a Co-Founder" desc="(Build your team)" color={colors.primary.iris} onClick={() => handleOptionSelect('Find / Be a Co-Founder')} />
-                        <OptionCard title="Find a Study Buddy" desc="(Accountability Partner)" color="#FF9800" onClick={() => handleOptionSelect('Find a Study Buddy')} />
-                        <OptionCard title="Offer Support" desc="(Volunteer)" color={colors.primary.springGreen} textColor={colors.primary.berkeleyBlue} onClick={() => handleOptionSelect('Offer Support')} />
-                        <OptionCard title="Request Support" desc="(Browse peer help)" color={colors.secondary.tomato} onClick={() => handleOptionSelect('Request Support')} />
-                      </>
-                    ) : (
-                      <>
-                        <OptionCard title="Study Buddy" desc="(1-on-1 Partner)" color={colors.primary.iris} onClick={() => handleOptionSelect('find')} />
-                        <OptionCard title="Offer Support" desc="(Volunteer)" color={colors.primary.springGreen} textColor={colors.primary.berkeleyBlue} onClick={() => handleOptionSelect('offer')} />
-                        <OptionCard title="I Need Help" desc="(Browse peers)" color={colors.secondary.tomato} onClick={() => handleOptionSelect('need')} />
-                        <OptionCard title="Group Squad" desc="(Join a team of 3-5)" color="#FF9800" onClick={() => handleOptionSelect('group')} />
-                      </>
-                    )}
+                      <OptionCard title="Study Buddy" desc="(1-on-1 Partner)" color={colors.primary.iris} onClick={() => handleOptionSelect('find')} />
+                      <OptionCard title="Offer Support" desc="(Volunteer)" color={colors.primary.springGreen} textColor={colors.primary.berkeleyBlue} onClick={() => handleOptionSelect('offer')} />
+                      <OptionCard title="I Need Help" desc="(Browse peers)" color={colors.secondary.tomato} onClick={() => handleOptionSelect('need')} />
+                      <OptionCard title="Group Squad" desc="(Join a team of 3-5)" color="#FF9800" onClick={() => handleOptionSelect('group')} />
                   </div>
                 </>
               )}
