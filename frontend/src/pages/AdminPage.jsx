@@ -216,6 +216,7 @@ const AdminPage = () => {
           <select value={programFilter} onChange={e => { setProgramFilter(e.target.value); setCurrentGroupPage(1); }} style={styles.programSelect}>
             <option value="All">All Programs</option><option value="VA">Virtual Assistant</option><option value="AiCE">AI Career Essentials</option>
             <option value="PF">Professional Foundation</option><option value="CC">Content Creation</option><option value="GD">Graphic Design</option>
+            <option value="FA">Founders Academy</option><option value="FLA">FreeLance Academy</option>
           </select>
         </div>
         <div style={{display:'flex', gap:'10px', flexWrap: 'wrap'}}>
