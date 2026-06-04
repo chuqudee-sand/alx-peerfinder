@@ -59,7 +59,7 @@ PROGRAM_CREDENTIALS = {
     'PF': { 'email': os.environ.get('PF_EMAIL', 'foundations@alxafrica.com'), 'token': load_google_token('PF_GOOGLE_TOKEN') },
     'CC': { 'email': os.environ.get('CC_EMAIL', 'contentcreation@alxafrica.com'), 'token': load_google_token('CC_GOOGLE_TOKEN') },
     'GD': { 'email': os.environ.get('GD_EMAIL', 'graphicdesign@alxafrica.com'), 'token': load_google_token('GD_GOOGLE_TOKEN') },
-    'FLA': { 'email': os.environ.get('FLA_EMAIL', 'foundations@alxafrica.com'), 'token': load_google_token('PF_GOOGLE_TOKEN') }
+    'FLA': { 'email': os.environ.get('FLA_EMAIL', 'programs@alx-ventures.com'), 'token': load_google_token('ALXVENTURES_GOOGLE_TOKEN') }
 }
 SCOPES = ['https://www.googleapis.com/auth/gmail.send']
 
