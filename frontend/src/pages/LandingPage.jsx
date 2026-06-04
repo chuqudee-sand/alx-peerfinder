@@ -37,7 +37,7 @@ const VERTICALS = {
   },
   VENTURES: {
     name: 'ALX VENTURES',
-    url: 'https://alxventuress-peerfinder.vercel.app',
+    url: 'https://alx-peerfinder.vercel.app',
     programs: [
       { id: 'FA', name: 'Founders Academy', courses: ['FA-1: Startup Foundations', 'FA-2: MVP Building', 'FA-3: Startup Operations', 'FA-4: Investment Readiness'] },
       { id: 'FLA', name: 'Freelance Academy', courses: ['FLA-1: Freelance Foundations', 'FLA-2: Client Acquisition', 'FLA-3: Scaling Your Business'] }
