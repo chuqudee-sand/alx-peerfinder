@@ -59,7 +59,8 @@ PROGRAM_CREDENTIALS = {
     'PF': { 'email': os.environ.get('PF_EMAIL', 'foundations@alxafrica.com'), 'token': load_google_token('PF_GOOGLE_TOKEN') },
     'CC': { 'email': os.environ.get('CC_EMAIL', 'contentcreation@alxafrica.com'), 'token': load_google_token('CC_GOOGLE_TOKEN') },
     'GD': { 'email': os.environ.get('GD_EMAIL', 'graphicdesign@alxafrica.com'), 'token': load_google_token('GD_GOOGLE_TOKEN') },
-    'FLA': { 'email': os.environ.get('FLA_EMAIL', 'programs@alx-ventures.com'), 'token': load_google_token('ALXVENTURES_GOOGLE_TOKEN') }
+    'FLA': { 'email': os.environ.get('FLA_EMAIL', 'programs@alx-ventures.com'), 'token': load_google_token('ALXVENTURES_GOOGLE_TOKEN') },
+    'FA': { 'email': os.environ.get('FA_EMAIL', 'programs@alx-ventures.com'), 'token': load_google_token('ALXVENTURES_GOOGLE_TOKEN') }
 }
 SCOPES = ['https://www.googleapis.com/auth/gmail.send']
 
@@ -70,7 +71,7 @@ def validate_registration(data):
     if not re.match(r'^\+?[1-9]\d{1,14}$', data.get('phone', '').replace(' ', '')): errors.append("Invalid phone number")
     
     # 🔴 VALIDATION NOW ACCEPTS ALL 5 PROGRAMS 🔴
-    if data.get('program') not in ['VA', 'AiCE', 'PF', 'CC', 'GD', 'FLA']: errors.append("Invalid program selected")
+    if data.get('program') not in ['VA', 'AiCE', 'PF', 'CC', 'GD', 'FLA', 'FA']: errors.append("Invalid program selected")
     
     if data.get('connection_type') not in ['find', 'offer', 'need', 'group']: errors.append("Invalid connection type")
     if data.get('connection_type') == 'offer' and not data.get('pseudonym'):
