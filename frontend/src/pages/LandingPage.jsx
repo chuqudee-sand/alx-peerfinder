@@ -26,7 +26,7 @@ const VERTICALS = {
   },
   TECHLITE: {
     name: 'TECH LITE',
-    url: 'https://alxs-techlite-peerfinder.vercel.app',
+    url: 'https://alx-techlite-peerfinder.vercel.app',
     programs: [
       { id: 'DA', name: 'Data Analytics', courses: ['DA-1: Data and AI Literacy Foundations', 'DA-2: Data Analytics with Spreadsheets', 'DA-3: SQL for Data', 'DA-4: PowerBI for Data Analytics', 'DA-5: Python for Data Analysis', 'DA-6: Statistical Reasoning', 'DA-7: Data Storytelling', 'DA-8: Advanced Excel', 'DA-9: Tableau for Analytics', 'DA-10: Data Analytics Capstone'] },
       { id: 'DS', name: 'Data Science', courses: ['DS-1: Python I: Foundations', 'DS-2: Python II: Algorithmic Thinking', 'DS-3: Python III: EDA', 'DS-4: Machine Learning I', 'DS-5: Machine Learning II', 'DS-6: Machine Learning III', 'DS-7: NLP Foundations', 'DS-8: Deep Learning', 'DS-9: Computer Vision', 'DS-10: MLOps', 'DS-11: Data Science Capstone'] },
