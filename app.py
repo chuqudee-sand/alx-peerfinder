@@ -70,8 +70,8 @@ def validate_registration(data):
     if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', data.get('email', '')): errors.append("Invalid email address format")
     if not re.match(r'^\+?[1-9]\d{1,14}$', data.get('phone', '').replace(' ', '')): errors.append("Invalid phone number")
     
-    # 🔴 VALIDATION NOW ACCEPTS ALL 5 PROGRAMS 🔴
-    if data.get('program') not in ['VA', 'AiCE', 'PF', 'CC', 'GD', 'FLA', 'FA']: errors.append("Invalid program selected")
+    # 🔴 VALIDATION NOW ACCEPTS ALL 7 PROGRAMS 🔴
+    if data.get('program') not in ['VA', 'AiCE', 'PF', 'CC', 'GD', 'FA', 'FLA']: errors.append("Invalid program selected")
     
     if data.get('connection_type') not in ['find', 'offer', 'need', 'group']: errors.append("Invalid connection type")
     if data.get('connection_type') == 'offer' and not data.get('pseudonym'):
