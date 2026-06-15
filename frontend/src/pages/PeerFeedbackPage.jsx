@@ -17,7 +17,9 @@ const PeerFeedbackPage = () => {
     'AiCE': ['AICE-1', 'AICE-2', 'AICE-3', 'AICE-4', 'AICE-5', 'AICE-6'],
     'PF': ['PF-1', 'PF-2', 'PF-3', 'PF-4', 'PF-5'],
     'CC': ['CC-1', 'CC-2', 'CC-3', 'CC-4', 'CC-5'],
-    'GD': ['GD-1', 'GD-2', 'GD-3', 'GD-4', 'GD-5', 'GD-6', 'GD-7', 'GD-8', 'GD-9', 'GD-10']
+    'GD': ['GD-1', 'GD-2', 'GD-3', 'GD-4', 'GD-5', 'GD-6', 'GD-7', 'GD-8', 'GD-9', 'GD-10'],
+    'FA': ['FA-1', 'FA-2', 'FA-3', 'FA-4', 'FA-5'],
+    'FLA': ['FLA-1', 'FLA-2', 'FLA-3']
   };
 
   // Ultra-Lean Form State
