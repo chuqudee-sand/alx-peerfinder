@@ -32,7 +32,7 @@ const VERTICALS = {
       { id: 'DS', name: 'Data Science', courses: ['DS-1: Data and AI Literacy Foundations', 'DS-2: Data Analytics with Spreadsheets', 'DS-3: SQL for Data', 'DS-4: PowerBI for Data Analytics', 'DS-5: Programming Foundations','DS-6: Python I: Foundations & Control Flow', 'DS-7: Python II: Python Programming & Algorithmic Thinking', 'DS-8: Python III: Exploratory Data Analysis, Data Visualisation & Reporting', 'DS-9: Supervised Learning I – Regression Foundations', 'DS-10: Supervised Learning II – Classification & Model Selection', 'DS-11: Supervised Learning III – Advanced Classification & Model Selection', 'DS-12: Unsupervised Learning: Clustering & Dimensionality Reduction', 'DS-13: Recommendation Systems', 'DS-14: Natural Language Processing'] },
       { id: 'SE', name: 'Software Engineering', courses: ['SE-1: Intro to SE', 'SE-2: Programming Basics', 'SE-3: Algorithmic Thinking', 'SE-4: Efficient Software Design', 'SE-5: Generative AI Engineering', 'SE-6: AI-Native Programming', 'SE-7: Agentic Workflows', 'SE-8: Code Quality', 'SE-9: Modern Web Languages', 'SE-10: UI Design', 'SE-11: Component Architecture', 'SE-12: Modern Rendering', 'SE-13: QA & Testing', 'SE-14: Backend Foundations', 'SE-15: Databases', 'SE-16: API Engineering', 'SE-17: Backend Security', 'SE-18: High Performance Systems', 'SE-19: Cloud Native Architecture', 'SE-20: DevOps & Production'] },
       { id: 'DE', name: 'Data Engineering', courses: ['Cohort 4'] },
-      { id: 'CS', name: 'Cyber Security', courses: ['Cohort 4'] }
+      { id: 'CS', name: 'Cyber Security', courses: ['Cohort 3'] }
     ]
   },
   VENTURES: {
