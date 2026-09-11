@@ -66,6 +66,25 @@ const AdminPage = () => {
     });
   };
 
+  const pollAutoMatchStatus = () => {
+    const poll = async () => {
+      try {
+        const res = await axios.post(`${API_URL}/api/admin/auto-match-queue/status`, { password });
+        if (!res.data.running) {
+          setLoading(false);
+          handleResult(true, res.data.last_message || 'Auto-match queue finished.');
+          return;
+        }
+      } catch (err) {
+        setLoading(false);
+        handleResult(false, err.response?.data?.error || err.message);
+        return;
+      }
+      setTimeout(poll, 4000);
+    };
+    setTimeout(poll, 4000);
+  };
+
   const executeAutoMatchQueue = () => {
     setModal({
       isOpen: true, type: 'confirm', title: 'Run Auto-Match on Queue?',
@@ -74,16 +93,16 @@ const AdminPage = () => {
         setModal({ ...modal, isOpen: false });
         setLoading(true);
         try {
-          // Timeout set to 90s — backend sends emails in background so response is quick,
-          // but give extra headroom for large CSV downloads on Render free tier
-          const res = await axios.post(`${API_URL}/api/admin/auto-match-queue`, { password }, { timeout: 90000 });
-          handleResult(res.data.success, res.data.message);
+          // Backend starts the job in the background and responds right away — we then
+          // poll for the result instead of holding one long request open (Render's
+          // platform timeout was killing that before it could finish, showing as a
+          // generic "Network error" even though the job was often fine).
+          await axios.post(`${API_URL}/api/admin/auto-match-queue`, { password });
+          pollAutoMatchStatus();
         } catch (err) {
-          const msg = err.code === 'ECONNABORTED'
-            ? 'The request timed out. The auto-match may still be running on the server — refresh the page in a few seconds to check.'
-            : (err.response?.data?.error || err.message);
-          handleResult(false, msg);
-        } finally { setLoading(false); }
+          setLoading(false);
+          handleResult(false, err.response?.data?.error || err.message);
+        }
       }
     });
   };
