@@ -24,7 +24,8 @@ const StatusPage = () => {
   const [loadingUnpair, setLoadingUnpair] = useState(false); 
   
   const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, title: '', message: '', type: 'success', redirect: null });
-  
+  const [consentLoadingId, setConsentLoadingId] = useState(null);
+
   const isDuplicate = location.state?.isDuplicate;
 
   const fetchStatus = async () => {
@@ -43,6 +44,40 @@ const StatusPage = () => {
   };
 
   useEffect(() => { fetchStatus(); }, [userId]);
+
+  const toggleConsent = async (realId, currentConsent) => {
+    setConsentLoadingId(realId);
+    try {
+      await axios.post(`${API_URL}/api/consent/peer-supporter`, { user_id: realId, consent: !currentConsent });
+      await fetchStatus();
+    } catch (err) {
+      alert("Couldn't update that — please try again.");
+    } finally {
+      setConsentLoadingId(null);
+    }
+  };
+
+  const renderConsentBox = (req) => {
+    if (!(req.user?.connection_type === 'find' || req.user?.connection_type === 'group')) return null;
+    const given = !!req.user?.consent_given;
+    const isLoading = consentLoadingId === req.real_id;
+    return (
+      <div style={{ marginTop: '15px', background: given ? '#f0fdf4' : '#f9f9f9', border: `1px solid ${given ? colors.primary.springGreen : '#ddd'}`, borderRadius: '10px', padding: '12px' }}>
+        <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: '#444' }}>
+          {given
+            ? "✓ You're opted in to also support other learners in this course who need help."
+            : "Willing to also support other learners in this course who need help?"}
+        </p>
+        <button
+          onClick={() => toggleConsent(req.real_id, given)}
+          disabled={isLoading}
+          style={{ padding: '6px 14px', borderRadius: '20px', border: `1px solid ${colors.primary.iris}`, background: given ? 'white' : colors.primary.iris, color: given ? colors.primary.iris : 'white', fontWeight: 'bold', fontSize: '0.8rem', cursor: 'pointer' }}
+        >
+          {isLoading ? 'Updating...' : given ? 'Opt out' : 'Yes, opt me in'}
+        </button>
+      </div>
+    );
+  };
 
   const submitUnpair = async () => {
     if (!unpairReason) {
@@ -206,6 +241,8 @@ const StatusPage = () => {
                       <a href={`https://meet.jit.si/ALX-PeerFinder-${req.group_id}`} target="_blank" rel="noreferrer" style={{ background: '#0056b3', color: 'white', padding: '10px 20px', borderRadius: '30px', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem', display: 'inline-block', marginTop: '5px' }}>Join Meeting</a>
                   </div>
 
+                  {renderConsentBox(req)}
+
                   <div style={{ marginTop: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       <button onClick={() => { setUnpairAction('requeue'); setUnpairModal({ isOpen: true, reqId: req.real_id, isMatched: true }); }} style={styles.unpairBtn}>Unpair / Leave Group</button>
                   </div>
@@ -237,6 +274,8 @@ const StatusPage = () => {
                     Hang in there! we are working hard to find you the perfect peer. You will receive an email the moment a match is found!
                   </p>
                   
+                  {renderConsentBox(req)}
+
                   <div style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
                       <button onClick={() => { setUnpairAction('delete'); setUnpairModal({ isOpen: true, reqId: req.real_id, isMatched: false }); }} style={{...styles.unpairBtn, background: 'transparent', border: `1px solid ${colors.secondary.tomato}`, color: colors.secondary.tomato}}>Cancel Request</button>
                   </div>
