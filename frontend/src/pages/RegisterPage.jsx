@@ -56,7 +56,8 @@ const RegisterPage = () => {
     group_size: '2', // Defaults to 2 for Study Buddy, will change for 'group'
     volunteer_capacity: '', 
     pseudonym: '', // NEW: Replaces gender for 'offer'
-    disclaimer_agree: false
+    disclaimer_agree: false,
+    peer_supporter_consent: false
   });
 
   // Redirect to home if accessed directly without program/course state
@@ -251,7 +252,6 @@ const RegisterPage = () => {
                   <select style={styles.select} name="match_preference" onChange={handleChange} required value={formData.match_preference}>
                       <option value="">--Select Priority--</option>
                       <option value="Country">Match me with a peer in the same country</option>
-                      <option value="Timezone">Match me with a peer in the same country OR time zone (Fast)</option>
                       <option value="Buffer">Match me with any peer within +/- 2 hours range (Faster)</option>
                       <option value="Global">Match me with any peer around the world (Fastest)</option>
                   </select>
@@ -284,6 +284,18 @@ const RegisterPage = () => {
                 <p style={{fontSize: '0.8rem', color: '#0f766e', marginTop: '5px'}}>
                   Your profile will appear in the Marketplace. We will match learners to you until you hit this limit.
                 </p>
+              </div>
+           )}
+
+           {/* Peer Supporter Opt-In — ONLY for Study Buddy / Group Squad registrants */}
+           {(connectionType === 'find' || connectionType === 'group') && (
+              <div style={{background: '#f0fdf4', padding: '15px', borderRadius: '8px', border: `1px solid ${colors.primary.springGreen}`}}>
+                <div style={{display: 'flex', alignItems: 'flex-start'}}>
+                  <input type="checkbox" name="peer_supporter_consent" onChange={handleChange} checked={formData.peer_supporter_consent} style={{accentColor: colors.primary.iris, marginTop: '3px'}}/>
+                  <label style={{marginLeft:'10px', fontSize: '0.9rem', color: '#085041'}}>
+                    I'm also willing to support other learners in my course who need help, in addition to being matched myself. (Optional — you can change this anytime from your Status page.)
+                  </label>
+                </div>
               </div>
            )}
 
