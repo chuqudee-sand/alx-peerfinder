@@ -1,0 +1,70 @@
+/* ALX PeerFinder — global base
+   Dark-first. Component colour lives in src/theme.js; this file only covers
+   what inline React styles cannot reach: document background, selection,
+   focus rings, scrollbars, autofill and placeholder colours. */
+
+:root {
+  --ink-base:   #020A2E;
+  --ink-raised: #03134F;
+  --ink-high:   #0E2569;
+  --ink-line:   #22397A;
+  --text-hi:    #EBF6FF;
+  --text-lo:    #9FADD6;
+  --text-mute:  #6672A0;
+  --azure:      #0452F0;
+  --azure-hi:   #6C93F5;
+  --lime:       #02B75E;
+  --sunflower:  #EAB308;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--ink-base);
+  color: var(--text-hi);
+  font-family: 'Poppins', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection { background: var(--azure); color: #FFFFFF; }
+
+:focus-visible {
+  outline: 2px solid var(--azure-hi);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+:root { color-scheme: dark; }
+
+input::placeholder,
+textarea::placeholder { color: var(--text-mute); opacity: 1; }
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text-hi);
+  -webkit-box-shadow: 0 0 0 1000px var(--ink-base) inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--ink-base); }
+::-webkit-scrollbar-thumb {
+  background: var(--ink-line);
+  border-radius: 999px;
+  border: 2px solid var(--ink-base);
+}
+::-webkit-scrollbar-thumb:hover { background: #2E4E9E; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

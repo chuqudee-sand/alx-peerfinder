@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 
 const Spinner = ({ size = "20px", color = "#ffffff" }) => {
   return (
-    <motion.div
+ <motion.div
       style={{
         width: size,
         height: size,

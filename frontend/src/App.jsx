@@ -13,25 +13,25 @@ import PeerFeedbackPage from './pages/PeerFeedbackPage';
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        
+ <Router>
+ <Routes>
+ <Route path="/" element={<LandingPage />} />
+ <Route path="/register" element={<RegisterPage />} />
+
         {/* The new Volunteer Marketplace Route */}
-        <Route path="/marketplace" element={<VolunteerMarketplace />} />
-        
+ <Route path="/marketplace" element={<VolunteerMarketplace />} />
+
         {/* The Check Status Gateway (The Search Bar) */}
-        <Route path="/status/check" element={<CheckStatusPage />} />
-        
+ <Route path="/status/check" element={<CheckStatusPage />} />
+
         {/* The Unified Status Dashboard (Loads the specific user's data) */}
-        <Route path="/status/:userId" element={<StatusPage />} />
-        
-        <Route path="/peer-feedback" element={<PeerFeedbackPage />} />
-        <Route path="/admin" element={<AdminPage />} /> 
-        <Route path="/disclaimer" element={<DisclaimerPage />} />
-      </Routes>
-    </Router>
+ <Route path="/status/:userId" element={<StatusPage />} />
+
+ <Route path="/peer-feedback" element={<PeerFeedbackPage />} />
+ <Route path="/admin" element={<AdminPage />} /> 
+ <Route path="/disclaimer" element={<DisclaimerPage />} />
+ </Routes>
+ </Router>
   );
 }
 

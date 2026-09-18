@@ -8,19 +8,19 @@ const slides = [
   {
     id: 1,
     image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=2070&auto=format&fit=crop", // Placeholder: Person on laptop
-    text: "You have been matched! 🎉",
+    text: "You have been matched! ",
     subtext: "Register and get paired instantly."
   },
   {
     id: 2,
     image: "https://images.unsplash.com/photo-1555421689-491a97ff2040?q=80&w=2070&auto=format&fit=crop", // Placeholder: Phone/Chat
-    text: "💬 I'm available. Let's meet!",
+    text: " I'm available. Let's meet!",
     subtext: "Connect via WhatsApp immediately."
   },
   {
     id: 3,
     image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071&auto=format&fit=crop", // Placeholder: Group studying
-    text: "Collaborate & Grow 🚀",
+    text: "Collaborate & Grow ",
     subtext: "Work on projects together happily."
   },
   {
@@ -44,9 +44,9 @@ const HeroSlideshow = () => {
   }, []);
 
   return (
-    <div style={styles.container}>
-      <AnimatePresence mode='wait'>
-        <motion.div
+ <div style={styles.container}>
+ <AnimatePresence mode='wait'>
+ <motion.div
           key={index} // Key change triggers animation
           initial={{ opacity: 0, scale: 1.1 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -55,44 +55,44 @@ const HeroSlideshow = () => {
           style={styles.slide}
         >
           {/* Background Image */}
-          <div 
+ <div 
             style={{
-              ...styles.image, 
+...styles.image, 
               backgroundImage: `url(${slides[index].image})`,
-              backgroundSize: slides[index].isLogo ? 'contain' : 'cover',
+              backgroundSize: slides[index].isLogo? 'contain': 'cover',
               backgroundPosition: 'center'
             }} 
           />
-          
+
           {/* Dark Overlay so text pops */}
-          <div style={styles.overlay} />
+ <div style={styles.overlay} />
 
           {/* Text Content */}
-          <motion.div 
+ <motion.div 
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.5 }}
             style={styles.content}
           >
-            <h2 style={styles.text}>{slides[index].text}</h2>
-            <p style={styles.subtext}>{slides[index].subtext}</p>
-          </motion.div>
-        </motion.div>
-      </AnimatePresence>
+ <h2 style={styles.text}>{slides[index].text}</h2>
+ <p style={styles.subtext}>{slides[index].subtext}</p>
+ </motion.div>
+ </motion.div>
+ </AnimatePresence>
 
       {/* Progress Dots */}
-      <div style={styles.dots}>
+ <div style={styles.dots}>
         {slides.map((_, i) => (
-          <div 
+ <div 
             key={i} 
             style={{
-              ...styles.dot, 
-              backgroundColor: i === index ? colors.secondary.electricBlue : 'rgba(255,255,255,0.5)'
+...styles.dot, 
+              backgroundColor: i === index? colors.accent.azureHi: 'rgba(255,255,255,0.5)'
             }} 
           />
         ))}
-      </div>
-    </div>
+ </div>
+ </div>
   );
 };
 
@@ -121,7 +121,7 @@ const styles = {
     textAlign: 'center', width: '100%', zIndex: 2
   },
   text: {
-    color: colors.secondary.electricBlue, fontFamily: fonts.main,
+    color: colors.accent.azureHi, fontFamily: fonts.main,
     fontSize: '2rem', fontWeight: 'bold', margin: 0,
     textShadow: '0 2px 10px rgba(0,0,0,0.5)'
   },
