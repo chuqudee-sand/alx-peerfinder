@@ -264,7 +264,7 @@ const AdminPage = () => {
  <div style={styles.statsGrid}>
  <StatCard title="Total Learners" value={totalInView} color={colors.accent.azure} emoji="" />
  <StatCard title="Match Rate" value={matchRate} sub={`(${matchedInView})`} color={colors.accent.lime} emoji="" />
- <StatCard title="Pending Queue" value={pendingInView} color={colors.accent.rose} emoji="⏳" />
+ <StatCard title="Pending Queue" value={pendingInView} color={colors.accent.limeHi} emoji="⏳" />
  <StatCard title="Overall Rating" value={data?.stats?.tool_rating || 'N/A'} color="#e83e8c" emoji="" />
  <StatCard title="Unpaired Needs" value={unpairedList.filter(l => l.connection_type === 'need').length} color={colors.accent.danger} emoji="" />
  <StatCard title="Unpaired Volunteers" value={unpairedList.filter(l => l.connection_type === 'offer').length} color="#FF9800" emoji="" />
@@ -475,7 +475,7 @@ const styles = {
   tr: { borderBottom: `1px solid ${colors.line.soft}` },
   trSelected: { background: colors.surface.base, borderBottom: `1px solid ${colors.line.soft}` },
   subText: { fontSize: '0.8rem', color: colors.text.lo },
-  input: { padding: '12px', width: '100%', marginBottom: '15px', borderRadius: '5px', border: `1px solid ${colors.line.soft}`, boxSizing:'border-box' },
+  input: { padding: '12px', width: '100%', marginBottom: '15px', borderRadius: '5px', border: `1px solid ${colors.line.base}`, background: colors.surface.base, color: colors.text.hi, boxSizing:'border-box' },
   btnPrimary: { padding: '12px 20px', width:'100%', background: colors.accent.azure, color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight:'bold' },
   btnSecondary: { padding: '8px 16px', background: colors.surface.raised, color: colors.text.hi, border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' },
   btnSmall: { padding: '5px 10px', background: colors.surface.base, border: `1px solid ${colors.line.base}`, borderRadius: '4px', cursor: 'pointer', fontSize:'0.8rem' },

@@ -74,24 +74,20 @@ const styles = {
     background: colors.surface.raised, 
     borderRadius: '12px', 
     boxShadow: '0 5px 20px rgba(0,0,0,0.05)',
-    borderTop: `3px solid ${colors.accent.azure}`
+    borderTop: `6px solid ${colors.primary.berkeleyBlue}` // Brand Accent
   },
   h1: { color: colors.text.hi, textAlign: 'center', marginBottom: '2rem' },
   h2: { color: colors.accent.azure, marginTop: '1.5rem', marginBottom: '0.8rem', fontSize: '1.2rem' },
   p: { marginBottom: '1rem', color: colors.text.lo },
-  ul: { marginBottom: '1rem', paddingLeft: '1.3rem', color: colors.text.lo },
-  li: { marginBottom: '0.4rem' },
-  highlightLink: { fontWeight: '600', color: colors.accent.azure, textDecoration: 'underline' },
+  highlightLink: { fontWeight: '600', color: colors.accent.azureHi, textDecoration: 'underline' },
   highlightText: { fontWeight: '600', color: colors.accent.danger },
   footer: { textAlign: 'center', marginTop: '3rem', paddingTop: '1.5rem', borderTop: `1px solid ${colors.line.soft}` },
 
-  // Was named `closeButton` while the JSX referenced `styles.backButton`,
-  // leaving the button completely unstyled.
-  backButton: {
-    display: 'inline-block', padding: '10px 30px',
-    background: colors.accent.azure, color: '#FFFFFF',
-    border: 'none', borderRadius: '30px', fontWeight: 'bold',
-    marginTop: '1rem', cursor: 'pointer'
+  backButton: { 
+    display: 'inline-block', padding: '10px 30px', 
+    background: colors.accent.azure, color: '#FFFFFF', 
+    border: 'none', borderRadius: '30px', fontWeight: 'bold', 
+    marginTop: '1rem', cursor: 'pointer' 
   }
 };
 

@@ -1,39 +1,41 @@
-// ALX PeerFinder
-// Theme built on ALX's official brand palette, using the same semantic-token
-// architecture as FIT PeerFinder and ALX ProConnect: tokens are named for the
-// JOB they do (surface, text, accent), not for what they look like, so a
-// future palette change never leaves a variable called "gold" that's actually
-// blue.
+// FIT (Frontier Institute of Technology) — Global Skills Academy
+// Theme for the "AI Fluency for the Workplace" PeerFinder
+//
+// ── Architecture ────────────────────────────────────────────────────────────
+// This follows the same semantic-token system used in ALX ProConnect rather
+// than naming colours after what they look like. Tokens are named for the JOB
+// they do, so a palette change never leaves you with a variable called
+// "springGreen" that is actually blue.
 //
 //   surface.*   layered dark "ink" backgrounds, lowest → highest elevation
 //   line.*      borders and dividers
 //   text.*      foreground hierarchy (hi = primary, lo = secondary, mute = tertiary)
-//   accent.*    brand accents, each with a base + `Hi` variant:
-//                 base → true brand hex; solid buttons, dark-surface fills
-//                 Hi   → lighter tone; text/icons/borders on dark surfaces
-//                        where the base would not clear contrast minimums
+//   accent.*    brand accents. Each has a base and a `Hi` variant:
+//                 base  → the true brand hex; use on dark surfaces and as a
+//                         solid button background paired with dark text
+//                 Hi    → lightened same-hue tone; use for text, icons, thin
+//                         borders and focus rings on dark surfaces, where the
+//                         base tone would not clear contrast minimums
 //
-// ── Brand source of truth (ALX brand guide) ─────────────────────────────────
-// Primary:   Deep Navy #03134F · Black #1C1F2A · Twilight Blue #0452F0
-// Secondary: Lime Green #C4E878 · Jungle Green #02B75E ·
-//             Jasmine Yellow #FDE791 · Sunflower Yellow #EAB308 ·
-//             Lavender #E9DBFF · Pale Sky #EBF6FF
+// ── Brand source of truth ───────────────────────────────────────────────────
+// Derived from FIT's official brand CSS. Note the role assignments, which
+// differ from the earlier draft palette:
+//   --color-primary   #103049  navy   → the ink ramp below is built from this
+//   --color-secondary #4278EC  blue   → accent.azure (primary CTA)
+//   --color-tertiary  #B4E000  lime   → accent.lime  (success / progress)
+//   --color-accent    #DF8CBB  pink   → accent.rose  (highlights / attention)
+//   --font-family     'DM Sans'
 //
-// Two of ALX's own secondary pairs map onto the base/Hi pattern directly —
-// no invented tints needed there:
-//   Jungle Green   (base) + Lime Green     (Hi) → accent.lime
-//   Sunflower Yellow (base) + Jasmine Yellow (Hi) → accent.rose
-//
-// Everywhere else a lighter/darker tint isn't in the brand guide, it's
-// clearly marked "derived" below — blended toward white or black at a noted
-// ratio, not sampled from an official swatch.
+// FIT's palette contains no red, so `accent.danger` is a curated addition for
+// destructive actions (unpair, ghosting reports, errors). It is tuned to sit
+// comfortably beside the navy ink ramp and to stay legible on dark surfaces.
 
 const ink = {
-  base: '#020A2E',    // derived — Deep Navy blended ~25% toward Black; page canvas
-  raised: '#03134F',  // Deep Navy — cards, panels, navbar
-  high: '#0E2569',    // derived — Deep Navy blended toward Twilight Blue; hover/elevated
-  line: '#22397A',    // derived — mid navy-blue border tone
-  lineSoft: '#152A5C',// derived — subtler divider tone
+  base: '#0A1F30',   // page canvas — one step darker than brand navy
+  raised: '#103049', // --color-primary. cards, panels, navbar
+  high: '#17435F',   // hover / nested panels / elevated rows
+  line: '#21536F',   // borders, dividers
+  lineSoft: '#1A3A52',
 };
 
 export const colors = {
@@ -42,56 +44,59 @@ export const colors = {
     base: ink.base,
     raised: ink.raised,
     high: ink.high,
-    glass: 'rgba(3, 19, 79, 0.72)',
-    scrim: 'rgba(2, 10, 46, 0.82)',
+    // Translucent overlays for glass panels and modal scrims
+    glass: 'rgba(16, 48, 73, 0.72)',
+    scrim: 'rgba(10, 31, 48, 0.82)',
+    // Light "paper" surfaces, kept for the rare light-on-dark inversion
     paper: '#FFFFFF',
-    paper2: '#EBF6FF', // Pale Sky
+    paper2: '#CFD6DB', // --color-light-background
   },
 
   line: {
     base: ink.line,
     soft: ink.lineSoft,
-    paper: '#DCE7F5', // derived light divider for the rare paper surface
+    paper: '#CFD6DB',
   },
 
   // ── Text ──────────────────────────────────────────────────────────────────
   text: {
-    hi: '#EBF6FF',      // Pale Sky — headings, primary copy on dark
-    lo: '#9FADD6',      // derived — secondary copy, labels
-    mute: '#6672A0',     // derived — meta, placeholders, disabled
-    onAccent: '#03134F', // Deep Navy — dark text on lime/rose/bright buttons
-    ink: '#03134F',      // Deep Navy — primary copy on paper surfaces
-    inkLo: '#1C1F2A',    // Black — secondary copy on paper surfaces
+    hi: '#F1F5F7',      // headings, primary copy on dark
+    lo: '#9FACB6',      // --color-primary-60. secondary copy, labels
+    mute: '#708392',    // --color-primary-40. meta, placeholders, disabled
+    onAccent: '#0A1F30',// dark text placed on lime / rose / bright buttons
+    ink: '#103049',     // primary copy on paper surfaces
+    inkLo: '#40596D',   // --color-primary-hover. secondary copy on paper
   },
 
   // ── Accents ───────────────────────────────────────────────────────────────
   accent: {
     // Primary action colour — buttons, links, active states
-    azure: '#0452F0',       // Twilight Blue
-    azureHi: '#6C93F5',     // derived — Twilight Blue blended toward white
-    azureHover: '#2E6CF3',  // derived — slightly lightened hover state
-    azureSoft: 'rgba(4, 82, 240, 0.14)',
+    azure: '#4278EC',       // --color-secondary
+    azureHi: '#8EAEF4',     // --color-secondary-40
+    azureHover: '#6893F0',  // --color-secondary-hover
+    azureSoft: 'rgba(66, 120, 236, 0.14)',
 
-    // Success, capacity bars, positive status — a true ALX brand pair
-    lime: '#02B75E',        // Jungle Green
-    limeHi: '#C4E878',      // Lime Green
-    limeHover: '#03D06C',   // derived — lightened hover state
-    limeSoft: 'rgba(2, 183, 94, 0.14)',
+    // Success, capacity bars, positive status
+    lime: '#B4E000',        // --color-tertiary
+    limeHi: '#D2EC66',      // --color-tertiary-40
+    limeHover: '#C3E633',   // --color-tertiary-hover
+    limeSoft: 'rgba(180, 224, 0, 0.14)',
 
-    // Highlights, badges, attention — a true ALX brand pair
-    rose: '#EAB308',        // Sunflower Yellow
-    roseHi: '#FDE791',      // Jasmine Yellow
-    roseSoft: 'rgba(234, 179, 8, 0.14)',
+    // Highlights, badges, "needs attention" without being an error
+    rose: '#DF8CBB',        // --color-accent
+    roseHi: '#E5A3C9',      // --color-accent-40
+    roseSoft: 'rgba(223, 140, 187, 0.14)',
 
-    // Reserved pastel — Lavender, for special badges that want a distinct
-    // fourth hue (kept separate from rose/yellow family above)
-    lavender: '#E9DBFF',
-    lavenderSoft: 'rgba(233, 219, 255, 0.14)',
-
-    // Destructive / error — curated, ALX's palette has no red
+    // Destructive / error — curated, not part of FIT's published palette
     danger: '#E5484D',
     dangerHi: '#FF8A8E',
     dangerSoft: 'rgba(229, 72, 77, 0.14)',
+
+    // ALX wordmark colour only — Jasmine Yellow, supplied for the ALX PeerFinder
+    // logotype specifically. Not part of FIT's own brand CSS; do not reuse
+    // this for FIT surfaces.
+    jasmine: '#FDE791',
+    jasmineHi: '#FDE791',
   },
 
   // ── Effects ───────────────────────────────────────────────────────────────
@@ -99,38 +104,39 @@ export const colors = {
     sm: '0 1px 2px rgba(0, 0, 0, 0.30)',
     md: '0 4px 16px rgba(0, 0, 0, 0.34)',
     lg: '0 16px 48px rgba(0, 0, 0, 0.44)',
-    glow: '0 0 0 1px rgba(4, 82, 240, 0.30), 0 8px 28px rgba(4, 82, 240, 0.18)',
+    glow: '0 0 0 1px rgba(66, 120, 236, 0.30), 0 8px 28px rgba(66, 120, 236, 0.18)',
   },
 
   radius: { sm: '6px', md: '10px', lg: '16px', pill: '999px' },
 
   // ── Legacy aliases ────────────────────────────────────────────────────────
-  // Every ALX page was written against these exact names (colors.primary.iris,
-  // colors.secondary.gold, etc). Keeping them mapped to the new tokens means
-  // any file not yet rewritten still renders correctly on the dark theme
-  // instead of crashing on an undefined key.
+  // The page components were originally written against ALX's colour names.
+  // These keep any not-yet-converted file rendering sensibly on the dark
+  // theme instead of crashing on an undefined key. Prefer the semantic tokens
+  // above in all new and rewritten code.
   primary: {
     berkeleyBlue: ink.base,
-    iris: '#0452F0',
-    springGreen: '#02B75E',
-    white: '#EBF6FF',
+    iris: '#4278EC',
+    springGreen: '#B4E000',
+    white: '#F1F5F7',
   },
   secondary: {
-    electricBlue: '#6C93F5',
-    blueNCS: '#0452F0',
+    electricBlue: '#8EAEF4',
+    gold: '#B4E000',
     tomato: '#E5484D',
-    gold: '#EAB308',
-    turquoise: '#02B75E',
+    blueNCS: '#8EAEF4',   // legacy alias, ALX theme only — link/info colour
+    turquoise: '#B4E000', // legacy alias, ALX theme only — unused in current pages
   },
 };
 
 export const fonts = {
-  main: "'Poppins', sans-serif",
+  main: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+  mono: "ui-monospace, 'SF Mono', Menlo, monospace",
 };
 
-// Shared building blocks — spread these into a page's style object, then
-// override as needed, instead of re-deriving the same card/input/button look
-// in every file: style={{ ...ui.card, padding: '32px' }}
+// Shared building blocks so each page does not re-invent the same card,
+// input and button treatments. Spread these, then override as needed:
+//   style={{ ...ui.card, padding: '32px' }}
 export const ui = {
   page: {
     minHeight: '100vh',
@@ -198,5 +204,5 @@ export const ui = {
   },
 };
 
-// Poppins is loaded in index.html:
-// <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+// DM Sans is loaded in index.html:
+// <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">

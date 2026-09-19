@@ -320,7 +320,7 @@ const styles = {
   backBtn: { alignSelf: 'flex-start', marginBottom: '20px', background: 'transparent', border: `1px solid ${colors.accent.azureHi}`, color: colors.accent.azureHi, padding: '8px 16px', borderRadius: '20px', cursor: 'pointer' },
   card: { background: colors.surface.raised, padding: '2.5rem', borderRadius: '16px', width: '100%', maxWidth: '600px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' },
   header: { textAlign: 'center', color: colors.text.hi, marginBottom: '0.5rem', fontSize: '1.8rem', fontWeight: 'bold' },
-  warningBox: { background: colors.surface.base, border: `1px solid ${colors.accent.rose}`, borderRadius: '12px', padding: '15px', marginBottom: '25px', color: '#856404' },
+  warningBox: { background: colors.surface.base, border: `1px solid ${colors.accent.limeHi}`, borderRadius: '12px', padding: '15px', marginBottom: '25px', color: '#856404' },
   warningTitle: { margin: '0 0 10px 0', fontSize: '1rem', color: colors.accent.danger },
   warningList: { paddingLeft: '20px', margin: 0, fontSize: '0.9rem' },
   form: { display: 'flex', flexDirection: 'column', gap: '15px' },

@@ -95,21 +95,21 @@ const Leaderboard = () => {
  <motion.div initial={{ y: 50, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }} style={styles.podiumBlockWrap}>
  <div style={{...styles.podiumName, color: '#C0C0C0'}}>{leaders[1].name}</div>
  <div style={styles.podiumScore}>{leaders[1].score} pts</div>
- <div style={{...styles.podiumPillar, height: '90px', background: 'linear-gradient(to top, #e0e0e0, #f8f9fa)'}}>2nd</div>
+ <div style={{...styles.podiumPillar, height: '90px', background: 'linear-gradient(to top, #3a3f47, #4d525c)'}}>2nd</div>
  </motion.div>
         )}
         {leaders[0] && (
  <motion.div initial={{ y: 50, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }} style={{...styles.podiumBlockWrap, zIndex: 10}}>
- <div style={{...styles.podiumName, color: colors.accent.roseHi}}>{leaders[0].name}</div>
+ <div style={{...styles.podiumName, color: '#FFD700'}}>{leaders[0].name}</div>
  <div style={styles.podiumScore}>{leaders[0].score} pts</div>
- <div style={{...styles.podiumPillar, height: '120px', background: `linear-gradient(to top, ${colors.accent.rose}, ${colors.accent.roseHi})`, border: `1px solid ${colors.accent.roseHi}`, color: colors.text.onAccent}}>1st</div>
+ <div style={{...styles.podiumPillar, height: '120px', background: 'linear-gradient(to top, #4a3f1a, #6b5a26)', border: '1px solid #FFD700'}}>1st</div>
  </motion.div>
         )}
         {leaders[2] && (
  <motion.div initial={{ y: 50, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }} style={styles.podiumBlockWrap}>
  <div style={{...styles.podiumName, color: '#CD7F32'}}>{leaders[2].name}</div>
  <div style={styles.podiumScore}>{leaders[2].score} pts</div>
- <div style={{...styles.podiumPillar, height: '70px', background: 'linear-gradient(to top, #f4e3d7, #fdf8f5)'}}>3rd</div>
+ <div style={{...styles.podiumPillar, height: '70px', background: 'linear-gradient(to top, #3f2f22, #5c4632)'}}>3rd</div>
  </motion.div>
         )}
  </div>
@@ -338,19 +338,19 @@ const LandingPage = () => {
 
 // --- STYLES ---
 
-// Rating star as inline SVG rather than an emoji glyph, so it inherits
-// brand colour and renders consistently across platforms.
+// Rating star rendered as inline SVG rather than an emoji glyph, so it
+// inherits brand colour and stays visually consistent across platforms.
 const StarIcon = ({ filled }) => (
   <svg width="30" height="30" viewBox="0 0 24 24"
-       fill={filled ? colors.accent.roseHi : 'none'}
-       stroke={filled ? colors.accent.roseHi : colors.text.mute}
+       fill={filled ? colors.accent.limeHi : 'none'}
+       stroke={filled ? colors.accent.limeHi : colors.text.mute}
        strokeWidth="1.5" strokeLinejoin="round"
        style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}>
     <path d="M12 2.6l2.9 5.88 6.5.95-4.7 4.58 1.11 6.47L12 17.43l-5.81 3.05L7.3 14.01 2.6 9.43l6.5-.95L12 2.6z" />
   </svg>
 );
 
-const OptionCard = ({ title, desc, color, textColor='#FFFFFF', onClick }) => (
+const OptionCard = ({ title, desc, color, textColor='white', onClick }) => (
  <motion.button whileHover={{scale: 1.02}} onClick={onClick} style={{...styles.optionCard, background: color, color: textColor}}>
  <div style={{fontWeight: 'bold', fontSize: '1.1rem'}}>{title}</div> <div style={{fontSize: '0.85rem', opacity: 0.9}}>{desc}</div>
  </motion.button>
@@ -359,7 +359,7 @@ const OptionCard = ({ title, desc, color, textColor='#FFFFFF', onClick }) => (
 const styles = {
   container: { minHeight: '100vh', background: colors.surface.base, fontFamily: fonts.main, position:'relative' },
   navbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 2rem', background: colors.surface.raised, zIndex: 100, position:'relative' },
-  navLeft: { display: 'flex', alignItems: 'center' }, logoText: { color: colors.accent.azure, fontWeight: '700', fontSize: '1.5rem' },
+  navLeft: { display: 'flex', alignItems: 'center' }, logoText: { color: colors.accent.jasmine, fontWeight: '700', fontSize: '1.5rem' },
   navRight: { display: 'flex', alignItems: 'center' },
   diceMenu: { cursor: 'pointer', padding: '8px', background: colors.surface.base, borderRadius: '6px', width: '32px', height: '32px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' },
   diceRow: { display: 'flex', justifyContent: 'space-between' }, diceRowCenter: { display: 'flex', justifyContent: 'center' }, diceDot: { width: '4px', height: '4px', background: colors.surface.base, borderRadius: '50%' },
@@ -392,7 +392,7 @@ const styles = {
   typeGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' },
   optionCard: { padding: '20px', borderRadius: '12px', border: 'none', cursor: 'pointer', textAlign: 'center' },
   backLink: { background: 'none', border: 'none', color: colors.text.lo, cursor: 'pointer', marginBottom: '15px', fontSize: '0.9rem' },
-  infoSection: { padding: '4rem 2rem', background: '#d1dbf8', color: colors.text.hi, textAlign: 'center' },
+  infoSection: { padding: '4rem 2rem', background: colors.surface.base, color: colors.text.hi, textAlign: 'center' },
   infoTitle: { fontSize: '1.5rem', fontWeight: '700', marginBottom: '1rem' }, infoText: { fontSize: '1.1rem', maxWidth: '700px', margin: '0 auto', marginBottom: '2rem' },
   footer: { background: colors.surface.base, color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: '2rem', fontSize: '0.9rem' },
   feedbackBtn: { position: 'fixed', bottom: '20px', right: '20px', padding: '15px 25px', borderRadius: '35px', border: 'none', background: colors.accent.danger, color: 'white', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', zIndex: 100 },

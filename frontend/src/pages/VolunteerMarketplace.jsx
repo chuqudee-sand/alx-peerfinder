@@ -86,13 +86,12 @@ const VolunteerMarketplace = () => {
  <div style={styles.content}>
         {loading? (
  <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '50px'}}>
- <Spinner size="50px" color="white" />
+ <Spinner size="50px" />
  <p style={{marginTop: '15px', color: colors.text.lo}}>Scanning the network for available volunteers...</p>
  </div>
         ): availableVolunteers.length === 0? (
  <motion.div initial={{opacity: 0, y: 20}} animate={{opacity: 1, y: 0}} style={styles.emptyState}>
- 
- <h3 style={{color: colors.text.hi}}>No volunteers currently available</h3>
+  <h3 style={{color: colors.text.hi}}>No volunteers currently available</h3>
  <p style={{color: colors.text.lo, marginBottom: '20px'}}>All our volunteers for this short course are currently fully booked or offline.</p>
  <button onClick={handleFallbackQueue} style={styles.fallbackBtn}>
               Join the Priority Queue &rarr;
@@ -107,6 +106,7 @@ const VolunteerMarketplace = () => {
 
               // Backend safely maps 'pseudonym' to 'name' before sending it here!
               const pseudonym = vol.name || 'Volunteer';
+              const initial = pseudonym.trim().charAt(0).toUpperCase() || 'V';
 
               return (
  <motion.div 
@@ -117,12 +117,11 @@ const VolunteerMarketplace = () => {
                   style={styles.card}
                 >
  <div style={styles.cardHeader}>
-                    {/* Replaced conditional gender avatar with a generic superhero avatar */}
- <div style={styles.avatar}></div>
+                    <div style={styles.avatar}>{initial}</div>
  <div style={{flex: 1, overflow: 'hidden'}}>
  <h3 style={{margin: 0, color: colors.text.hi, fontSize: '1.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{pseudonym}</h3>
  <div style={{marginTop: '5px'}}>
- <span style={{fontSize: '0.85rem', background: colors.surface.base, color: '#0d47a1', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold'}}>
+ <span style={{fontSize: '0.85rem', background: colors.accent.limeSoft, color: colors.accent.limeHi, padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold'}}>
                           Completed {vol.course || course}
  </span>
  </div>
@@ -181,7 +180,7 @@ const styles = {
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' },
   card: { background: colors.surface.raised, borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column' },
   cardHeader: { display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px', paddingBottom: '15px', borderBottom: `1px solid ${colors.line.soft}` },
-  avatar: { fontSize: '2.5rem', background: colors.surface.base, borderRadius: '50%', width: '60px', height: '60px', display: 'flex', justifyContent: 'center', alignItems: 'center' },
+  avatar: { width: '52px', height: '52px', flexShrink: 0, borderRadius: '50%', background: colors.accent.azureSoft, border: `1px solid ${colors.accent.azure}`, color: colors.accent.azureHi, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', fontWeight: 700 },
   detailsGrid: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' },
   detailItem: { fontSize: '0.85rem', color: colors.text.lo, background: colors.surface.base, padding: '8px', borderRadius: '6px' },
   capacitySection: { marginBottom: '20px', background: colors.surface.base, padding: '12px', borderRadius: '8px', border: `1px solid ${colors.line.soft}` },
@@ -191,7 +190,7 @@ const styles = {
   emptyState: { textAlign: 'center', background: colors.surface.raised, padding: '50px 20px', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)', maxWidth: '600px', margin: '0 auto' },
   fallbackBtn: { padding: '15px 30px', background: colors.accent.azure, color: 'white', border: 'none', borderRadius: '30px', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' },
   fallbackCard: { background: colors.surface.base, border: '1px dashed #ffd54f', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' },
-  fallbackBtnOutlined: { padding: '12px 20px', background: 'transparent', border: `2px solid ${colors.accent.rose}`, color: colors.accent.rose, borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer' }
+  fallbackBtnOutlined: { padding: '12px 20px', background: 'transparent', border: `2px solid ${colors.accent.limeHi}`, color: colors.accent.limeHi, borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer' }
 };
 
 export default VolunteerMarketplace;

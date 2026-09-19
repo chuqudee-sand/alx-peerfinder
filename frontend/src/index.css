@@ -1,20 +1,20 @@
-/* ALX PeerFinder — global base
+/* FIT PeerFinder — global base
    Dark-first. Component colour lives in src/theme.js; this file only covers
-   what inline React styles cannot reach: document background, selection,
+   the things inline React styles cannot reach: document background, selection,
    focus rings, scrollbars, autofill and placeholder colours. */
 
 :root {
-  --ink-base:   #020A2E;
-  --ink-raised: #03134F;
-  --ink-high:   #0E2569;
-  --ink-line:   #22397A;
-  --text-hi:    #EBF6FF;
-  --text-lo:    #9FADD6;
-  --text-mute:  #6672A0;
-  --azure:      #0452F0;
-  --azure-hi:   #6C93F5;
-  --lime:       #02B75E;
-  --sunflower:  #EAB308;
+  --ink-base:   #0A1F30;
+  --ink-raised: #103049;
+  --ink-high:   #17435F;
+  --ink-line:   #21536F;
+  --text-hi:    #F1F5F7;
+  --text-lo:    #9FACB6;
+  --text-mute:  #708392;
+  --azure:      #4278EC;
+  --azure-hi:   #8EAEF4;
+  --lime:       #B4E000;
+  --rose:       #DF8CBB;
 }
 
 * { box-sizing: border-box; }
@@ -25,7 +25,7 @@ body {
   margin: 0;
   background: var(--ink-base);
   color: var(--text-hi);
-  font-family: 'Poppins', sans-serif;
+  font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -38,11 +38,15 @@ body {
   border-radius: 4px;
 }
 
+/* Native form controls default to a light UA theme; this makes select
+   dropdowns, date pickers and scrollbars render dark to match. */
 :root { color-scheme: dark; }
 
 input::placeholder,
 textarea::placeholder { color: var(--text-mute); opacity: 1; }
 
+/* Chrome autofill repaints inputs bright yellow — override with an inset
+   shadow, the only reliable way to keep autofilled fields on-theme. */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
@@ -58,7 +62,7 @@ input:-webkit-autofill:focus {
   border-radius: 999px;
   border: 2px solid var(--ink-base);
 }
-::-webkit-scrollbar-thumb:hover { background: #2E4E9E; }
+::-webkit-scrollbar-thumb:hover { background: #2E6A8F; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -7,12 +7,12 @@ import Spinner from '../components/Spinner';
 import { API_URL } from '../config';
 
 
-// Rating star as inline SVG rather than an emoji glyph, so it inherits
-// brand colour and renders consistently across platforms.
+// Rating star rendered as inline SVG rather than an emoji glyph, so it
+// inherits brand colour and stays visually consistent across platforms.
 const StarIcon = ({ filled }) => (
   <svg width="30" height="30" viewBox="0 0 24 24"
-       fill={filled ? colors.accent.roseHi : 'none'}
-       stroke={filled ? colors.accent.roseHi : colors.text.mute}
+       fill={filled ? colors.accent.limeHi : 'none'}
+       stroke={filled ? colors.accent.limeHi : colors.text.mute}
        strokeWidth="1.5" strokeLinejoin="round"
        style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}>
     <path d="M12 2.6l2.9 5.88 6.5.95-4.7 4.58 1.11 6.47L12 17.43l-5.81 3.05L7.3 14.01 2.6 9.43l6.5-.95L12 2.6z" />

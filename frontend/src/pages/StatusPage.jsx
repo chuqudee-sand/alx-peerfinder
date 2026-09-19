@@ -71,7 +71,7 @@ const StatusPage = () => {
  <button
           onClick={() => toggleConsent(req.real_id, given)}
           disabled={isLoading}
-          style={{ padding: '6px 14px', borderRadius: '20px', border: `1px solid ${colors.accent.azure}`, background: given? 'transparent': colors.accent.azure, color: given? colors.accent.azure: '#FFFFFF', fontWeight: 'bold', fontSize: '0.8rem', cursor: 'pointer' }}
+          style={{ padding: '6px 14px', borderRadius: '20px', border: `1px solid ${colors.accent.azure}`, background: given? colors.accent.azure: colors.surface.base, color: given? '#FFFFFF': colors.accent.azureHi, fontWeight: 'bold', fontSize: '0.8rem', cursor: 'pointer' }}
         >
           {isLoading? 'Updating...': given? 'Opt out': 'Yes, opt me in'}
  </button>
@@ -212,7 +212,7 @@ const StatusPage = () => {
  </div>
                   )}
                   {isNeeder && (
- <div style={{...styles.customMsgBox, background: colors.surface.base, border: `1px solid ${colors.line.soft}`}}>
+ <div style={{...styles.customMsgBox, background: colors.surface.base, border: '1px solid #c8e6c9'}}>
  <h4 style={{margin: '0 0 5px 0', color: '#2e7d32'}}> Support Found!</h4>
  <p style={{margin: 0, color: '#1b5e20'}}>You are paired with a Volunteer ready to support you!</p>
  </div>
@@ -304,7 +304,7 @@ const StatusPage = () => {
 
  <div style={{ textAlign: 'left', marginBottom: '20px' }}>
  <label style={{ fontWeight: 'bold', fontSize: '0.9rem', color: colors.text.lo }}>Reason for leaving:</label>
- <select style={{ width: '100%', padding: '10px', marginTop: '5px', borderRadius: '5px', border: `1px solid ${colors.line.soft}` }} onChange={(e) => setUnpairReason(e.target.value)} value={unpairReason}>
+ <select style={{ width: '100%', padding: '10px', marginTop: '5px', borderRadius: '5px', border: `1px solid ${colors.line.base}`, background: colors.surface.base, color: colors.text.hi }} onChange={(e) => setUnpairReason(e.target.value)} value={unpairReason}>
  <option value="">-- Select Reason --</option>
  <option value="Ghosting / Partner didn't show up">Ghosting / Partner didn't show up</option>
  <option value="Schedule Conflict">Schedule Conflict</option>
@@ -324,7 +324,7 @@ const StatusPage = () => {
                 {unpairReason === 'Other' && (
  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} style={{marginTop: '10px', textAlign: 'left', overflow: 'hidden'}}>
  <label style={{fontSize: '0.85rem', fontWeight: 'bold', color: colors.text.lo, display: 'block', marginBottom: '5px'}}>Please specify your reason:</label>
- <input type="text" placeholder="Type your reason here..." value={customReason} onChange={(e) => setCustomReason(e.target.value)} style={{width: '100%', padding: '10px', borderRadius: '5px', border: `1px solid ${colors.line.soft}`, boxSizing: 'border-box'}} required />
+ <input type="text" placeholder="Type your reason here..." value={customReason} onChange={(e) => setCustomReason(e.target.value)} style={{width: '100%', padding: '10px', borderRadius: '5px', border: `1px solid ${colors.line.base}`, background: colors.surface.base, color: colors.text.hi, boxSizing: 'border-box'}} required />
  </motion.div>
                 )}
  </AnimatePresence>
@@ -386,7 +386,7 @@ const styles = {
   emptyColBox: { background: 'rgba(255,255,255,0.1)', color: 'white', padding: '20px', borderRadius: '10px', textAlign: 'center', fontStyle: 'italic', border: '1px dashed rgba(255,255,255,0.3)' },
 
   card: { background: colors.surface.raised, width: '100%', borderRadius: '15px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' },
-  header: { background: colors.surface.base, color: 'white', padding: '20px', textAlign: 'center', borderBottom: `4px solid ${colors.accent.rose}` },
+  header: { background: colors.surface.base, color: 'white', padding: '20px', textAlign: 'center', borderBottom: `4px solid ${colors.accent.limeHi}` },
   body: { padding: '20px' },
   duplicateWarning: { background: colors.surface.base, color: '#856404', padding: '15px', borderRadius: '8px', fontSize: '0.95rem', border: `1px solid ${colors.line.soft}`, textAlign: 'center' },
   successBadge: { background: '#d4edda', color: '#155724', padding: '6px 12px', borderRadius: '20px', display: 'inline-block', fontWeight: 'bold', fontSize: '0.8rem', marginBottom: '15px' },
