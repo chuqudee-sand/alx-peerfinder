@@ -472,8 +472,10 @@ def perform_matching(df, user_id):
             (df['id'] != user_id)
         ].copy()
         program_only_pool['course_num'] = program_only_pool['course'].apply(get_course_num)
+        # .astype(bool): on an empty frame .apply() returns a non-boolean empty Series, which pandas would
+        # treat as a column selector (dropping every column) and crash the lines below with a KeyError.
         candidate_pool = program_only_pool[
-            program_only_pool['course_num'].apply(lambda c: course_relaxation_ok(u_course_num, c, wait_days))
+            program_only_pool['course_num'].apply(lambda c: course_relaxation_ok(u_course_num, c, wait_days)).astype(bool)
         ]
 
         # --- STEP 1: Try to join an existing INCOMPLETE group ---
@@ -488,7 +490,7 @@ def perform_matching(df, user_id):
         ].copy()
         existing_members_df['course_num'] = existing_members_df['course'].apply(get_course_num)
         existing_members_df = existing_members_df[
-            existing_members_df['course_num'].apply(lambda c: course_relaxation_ok(u_course_num, c, wait_days))
+            existing_members_df['course_num'].apply(lambda c: course_relaxation_ok(u_course_num, c, wait_days)).astype(bool)
         ]
 
         for existing_gid, grp_members in existing_members_df.groupby('group_id'):
@@ -989,20 +991,28 @@ def leave_group():
         other_members = df[(df['group_id'] == old_group_id) & (df['id'] != target_id)]
 
         if not other_members.empty:
+            leaver_type = str(df.at[idx, 'connection_type'])
+
             # Update volunteer's capacity counter if one exists in the group
             vol_in_group = other_members[other_members['connection_type'] == 'offer']
             if not vol_in_group.empty:
                 v_idx = vol_in_group.index[0]
                 df.at[v_idx, 'current_load'] = max(0, int(df.at[v_idx, 'current_load'] or 0) - 1)
 
-            # FIX B: Free ALL other non-volunteer members — works for 2-person pairs,
-            # volunteer groups, AND groups of 3–5 find/group learners.
-            for o_idx in other_members.index.tolist():
-                if str(df.at[o_idx, 'connection_type']) != 'offer':
+            # Who goes back to the queue together with the person leaving:
+            #   - a volunteer leaves       -> their needers have lost their volunteer, so everyone else is released
+            #   - only one person remains  -> nobody is left to work with, so that person is released too
+            #   - anyone else leaves       -> ONLY the leaver goes. The rest of the group stays together
+            #                                 (a group of 3, 5 or 8 stays intact when one member drops out,
+            #                                 and it keeps accepting new members until it is full again)
+            if leaver_type == 'offer' or len(other_members) == 1:
+                for o_idx in other_members.index.tolist():
                     df.at[o_idx, 'matched'] = False
                     df.at[o_idx, 'group_id'] = ''
                     df.at[o_idx, 'timestamp'] = datetime.now(timezone.utc).isoformat()
                     df.at[o_idx, 'match_attempted'] = False
+                    if str(df.at[o_idx, 'connection_type']) == 'offer':
+                        df.at[o_idx, 'current_load'] = 0  # a volunteer left alone has no needers any more
 
     # 4. Free or delete the requesting user
     if delete_profile:
