@@ -266,6 +266,7 @@ const RegisterPage = () => {
  <option value="">--Select Size--</option>
  <option value="3">Group of 3</option>
  <option value="5">Group of 5</option>
+ {['AiCE', 'VA'].includes(program) && <option value="8">Group of 8</option>}
  </select>
  </div>
            )}
